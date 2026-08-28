@@ -1,0 +1,904 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cardano Relay Health Ranking</title>
+<style>
+:root{
+  --bg0:#06031a;--bg1:#0a0726;
+  --glass:rgba(255,255,255,.038);--glass2:rgba(255,255,255,.06);
+  --stroke:rgba(255,255,255,.09);--stroke2:rgba(255,255,255,.17);
+  --ink:#eceafd;--muted:#9a9fd0;--dim:#6e73a6;
+  --v:#8b5cff;--v2:#b78bff;--c:#22d3ee;--m:#34e2b0;--a:#fbbf24;--p:#ff5c93;
+  --S:#34e2b0;--A:#22d3ee;--B:#8b5cff;--C:#fbbf24;--D:#ff5c93;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);font:15px/1.65 system-ui,"Segoe UI","Noto Sans JP",sans-serif;
+  -webkit-font-smoothing:antialiased;background:var(--bg0);position:relative;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(760px 520px at 12% -8%, rgba(139,92,255,.34), transparent 62%),
+    radial-gradient(680px 480px at 88% 4%, rgba(34,211,238,.20), transparent 60%),
+    radial-gradient(900px 700px at 50% 108%, rgba(52,226,176,.13), transparent 62%),
+    linear-gradient(180deg,#0a0726 0%,#06031a 55%,#050214 100%)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:54px 54px;
+  -webkit-mask-image:radial-gradient(circle at 50% 22%,#000 0%,transparent 74%);
+  mask-image:radial-gradient(circle at 50% 22%,#000 0%,transparent 74%)}
+.wrap{max-width:1280px;margin:auto;padding:38px 20px 80px;position:relative}
+
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+h1{font-size:clamp(30px,4.4vw,50px);margin:8px 0 0;letter-spacing:-.03em;line-height:1.1;
+   background:linear-gradient(96deg,#fff 8%,#c9b6ff 44%,#5eead4 96%);
+   -webkit-background-clip:text;background-clip:text;color:transparent}
+h2{margin:56px 0 6px;font-size:23px;letter-spacing:-.015em}
+h3{margin:0 0 12px;font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:11px;letter-spacing:.2em;
+  color:#b9a6ff;border:1px solid rgba(139,92,255,.4);background:rgba(139,92,255,.12);
+  border-radius:999px;padding:5px 13px}
+.kicker i{width:6px;height:6px;border-radius:50%;background:var(--m);box-shadow:0 0 9px var(--m);display:block}
+.lead{color:var(--muted);max-width:940px;margin:12px 0 0}
+.lead b{color:var(--ink)}
+
+.langsw{display:inline-flex;border:1px solid var(--stroke2);border-radius:999px;overflow:hidden;
+  background:rgba(255,255,255,.05);flex:none}
+.langsw button{background:transparent;border:0;color:var(--muted);font:inherit;font-size:12.5px;font-weight:700;
+  padding:7px 15px;cursor:pointer;transition:.16s}
+.langsw button:hover{color:var(--ink)}
+.langsw button[aria-pressed="true"]{background:linear-gradient(96deg,rgba(139,92,255,.42),rgba(34,211,238,.3));
+  color:#fff;box-shadow:0 0 20px -6px var(--v)}
+
+.glass{background:var(--glass);border:1px solid var(--stroke);border-radius:18px;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 18px 44px rgba(3,0,20,.5)}
+
+/* ---------- summary ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:28px 0 0}
+.stat{padding:15px 17px}
+.stat span{color:var(--muted);font-size:12px}
+.stat b{display:block;font-size:27px;line-height:1.25;font-variant-numeric:tabular-nums;
+  background:linear-gradient(92deg,#8b5cff,#22d3ee 55%,#34e2b0);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.stat small{color:var(--dim);font-size:11px}
+
+/* ---------- charts ---------- */
+.charts{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(0,1fr);gap:14px;margin:14px 0 0}
+.chart{padding:18px 18px 14px;min-width:0}
+.chart>svg{display:block;width:100%;height:auto;overflow:visible}
+.cap{color:var(--dim);font-size:11.5px;margin:10px 0 0;line-height:1.55}
+.hexnote{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+
+.dist{display:flex;gap:8px;margin:13px 0 0}
+.dist button{flex:1;background:var(--glass);border:1px solid var(--stroke);border-radius:14px;
+  padding:11px 12px;cursor:pointer;font:inherit;color:inherit;text-align:left;transition:.16s}
+.dist button:hover{border-color:var(--stroke2);background:var(--glass2);transform:translateY(-1px)}
+.dist button[aria-pressed="true"]{border-color:currentColor;box-shadow:0 0 0 1px currentColor,0 0 22px -6px currentColor}
+.dist .n{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:7px;color:var(--ink)}
+.dist .r{font-size:11px;color:var(--dim)}
+.dist .track{height:5px;border-radius:4px;background:rgba(255,255,255,.09);margin-top:9px;overflow:hidden}
+.dist .track i{display:block;height:100%;border-radius:4px;background:currentColor;box-shadow:0 0 12px currentColor}
+
+/* ---------- grades ---------- */
+.cS{color:var(--S)} .cA{color:var(--A)} .cB{color:var(--B)} .cC{color:var(--C)} .cD{color:var(--D)}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:27px;height:27px;padding:0 8px;
+  border-radius:9px;font-weight:800;font-size:14px;color:#0a0620;flex:none}
+.badge.S{background:var(--S);box-shadow:0 0 16px -3px var(--S)}
+.badge.A{background:var(--A);box-shadow:0 0 16px -3px var(--A)}
+.badge.B{background:var(--B);box-shadow:0 0 16px -3px var(--B)}
+.badge.C{background:var(--C);box-shadow:0 0 16px -3px var(--C)}
+.badge.D{background:var(--D);box-shadow:0 0 16px -3px var(--D)}
+
+/* ---------- legend ---------- */
+details.legend{margin:22px 0 0;overflow:hidden}
+details.legend>summary{cursor:pointer;padding:15px 19px;font-weight:700;list-style:none;color:var(--ink)}
+details.legend>summary::-webkit-details-marker{display:none}
+details.legend>summary::before{content:"▸ ";color:var(--v2)}
+details.legend[open]>summary::before{content:"▾ "}
+.legendgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:24px;padding:2px 19px 22px}
+.legendgrid ul{list-style:none;margin:0;padding:0}
+.legendgrid li{display:flex;gap:10px;align-items:flex-start;padding:4px 0;font-size:13px;color:var(--muted)}
+.legendgrid li b{color:var(--ink);font-weight:600}
+.legendgrid li>span:first-child{flex:none}
+
+/* ---------- pills ---------- */
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.legendgrid .dot{margin-top:6px}
+.st{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.st-active{color:var(--m)} .st-partial{color:var(--a)}
+.st-degraded{color:#ff9558} .st-stopped{color:var(--p)} .st-unknown{color:var(--dim)}
+.st-active .dot{background:var(--m);box-shadow:0 0 9px var(--m)}
+.st-partial .dot{background:var(--a);box-shadow:0 0 9px var(--a)}
+.st-degraded .dot{background:#ff9558;box-shadow:0 0 9px #ff9558}
+.st-stopped .dot{background:var(--p);box-shadow:0 0 9px var(--p)}
+.st-unknown .dot{background:var(--dim)}
+
+.pill{display:inline-block;border:1px solid var(--stroke2);border-radius:999px;padding:2px 10px;font-size:11.5px;
+  color:#c6c9ee;white-space:nowrap;margin:2px 3px 2px 0;background:rgba(255,255,255,.04)}
+.pill.ok{color:#7df0c9;border-color:rgba(52,226,176,.42);background:rgba(52,226,176,.11)}
+.pill.warn{color:#ffd98a;border-color:rgba(251,191,36,.42);background:rgba(251,191,36,.11)}
+.pill.bad{color:#ff9bbb;border-color:rgba(255,92,147,.45);background:rgba(255,92,147,.13)}
+
+/* ---------- toolbar ---------- */
+.tools{display:flex;gap:10px;margin:16px 0 10px;flex-wrap:wrap;align-items:center}
+input,select{background:rgba(255,255,255,.05);color:var(--ink);border:1px solid var(--stroke2);
+  border-radius:11px;padding:9px 13px;font:inherit;font-size:14px}
+select option{background:#120d33;color:var(--ink)}
+input{min-width:252px}
+input::placeholder{color:var(--dim)}
+input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--muted);border-radius:999px;
+  padding:7px 15px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.16s}
+.chip:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+.chip[aria-pressed="true"]{background:linear-gradient(96deg,rgba(139,92,255,.34),rgba(34,211,238,.24));
+  border-color:rgba(160,120,255,.75);color:#fff;box-shadow:0 0 20px -6px var(--v)}
+.hint{color:var(--dim);font-size:12.5px;margin:0 0 10px}
+.sigfilter{display:none;align-items:center;gap:8px;font-size:12.5px;color:#ffd98a;
+  border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.1);border-radius:999px;padding:6px 8px 6px 14px}
+.sigfilter.on{display:inline-flex}
+.sigfilter button{background:rgba(0,0,0,.28);border:0;color:#ffd98a;border-radius:50%;width:19px;height:19px;
+  cursor:pointer;font:inherit;font-size:12px;line-height:1}
+
+/* ---------- table ---------- */
+.tablebox{overflow:auto;border:1px solid var(--stroke);border-radius:18px;background:rgba(10,6,32,.5);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+table{width:100%;border-collapse:collapse;min-width:1000px}
+thead th{position:sticky;top:0;z-index:2;background:#150f3a;color:#bfc2ec;text-align:left;font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:12px;border-bottom:1px solid var(--stroke2)}
+tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.055);vertical-align:middle}
+tbody tr.row{cursor:pointer;transition:background .13s}
+tbody tr.row:hover{background:rgba(139,92,255,.1)}
+tbody tr.row.open{background:rgba(139,92,255,.17)}
+.rank{font-size:16px;font-weight:800;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ticker{font-weight:800;font-size:15px;color:#a5f3ea}
+.poolid{font:11px/1.45 ui-monospace,"SFMono-Regular",monospace;color:#6b70a2;max-width:210px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.sub{color:var(--dim);font-size:11.5px;font-weight:400}
+.scorecell{display:flex;align-items:center;gap:9px}
+.scoreval{font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
+.mini{display:flex;gap:2px;width:104px;height:7px;margin-top:6px}
+.mini i{display:block;height:100%;border-radius:2px;background:rgba(255,255,255,.11);position:relative;overflow:hidden}
+.mini i b{position:absolute;top:0;bottom:0;left:0;display:block;border-radius:2px;background:currentColor;
+  box-shadow:0 0 8px currentColor}
+.caret{color:var(--dim);font-size:10px;display:inline-block;transition:transform .16s}
+tr.row.open .caret{transform:rotate(90deg);color:var(--v2)}
+
+/* ---------- detail ---------- */
+tr.detail>td{background:rgba(6,3,26,.72);border-bottom:1px solid var(--stroke2);padding:0}
+.dpad{padding:20px 22px 22px;display:grid;grid-template-columns:200px minmax(260px,1fr) minmax(280px,1.05fr);gap:26px}
+.hexcell{max-width:200px}
+.hexcell svg{display:block;width:100%;height:auto;overflow:visible}
+.axis{display:grid;grid-template-columns:132px 1fr 62px;gap:9px 12px;align-items:center;font-size:13px}
+.axis .lb{color:var(--muted)}
+.axis .bar{height:8px;border-radius:5px;background:rgba(255,255,255,.09);overflow:hidden}
+.axis .bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--v),var(--c) 60%,var(--m))}
+.axis .bar.low i{background:linear-gradient(90deg,var(--p),var(--a))}
+.axis .vl{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700}
+.issues{margin:0;padding:0;list-style:none}
+.issues li{display:flex;gap:9px;padding:5px 0;font-size:13px;color:#ffdcae}
+.issues li::before{content:"!";flex:none;width:17px;height:17px;border-radius:50%;background:rgba(251,191,36,.2);
+  color:var(--a);font-size:11px;font-weight:800;display:grid;place-items:center;margin-top:3px}
+.noissue{color:var(--m);font-size:13px;font-weight:700;margin:0}
+.note{margin:12px 0 0;font-size:12.5px;color:var(--dim);border-left:2px solid rgba(139,92,255,.5);padding-left:12px}
+.note b{color:var(--muted)}
+.idrow{display:flex;gap:8px;align-items:center;margin-top:15px;flex-wrap:wrap}
+.idrow code{font:11px ui-monospace,monospace;color:#8f93c4;word-break:break-all;background:rgba(0,0,0,.3);
+  border:1px solid var(--stroke);border-radius:9px;padding:6px 10px}
+.btn{background:linear-gradient(96deg,rgba(139,92,255,.34),rgba(34,211,238,.26));border:1px solid rgba(160,120,255,.6);
+  color:#e7e2ff;border-radius:9px;padding:6px 13px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.btn:hover{filter:brightness(1.22)}
+
+.context{color:var(--muted);font-size:12.5px;margin-top:10px;max-width:1000px}
+.method{border-radius:16px;padding:17px;color:#c5c8ee}
+.method b{color:#fff}
+details.method-wrap{margin-top:24px}
+details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:var(--v2)}
+.foot{color:var(--dim);margin-top:24px;font-size:12px}
+#reftable table{min-width:820px}
+#reftable td{font-size:13px;color:var(--muted);vertical-align:top}
+#reftable td:first-child{color:var(--ink);font-weight:600}
+#reftable td:nth-child(3){color:var(--p);font-weight:700;text-align:right;white-space:nowrap}
+
+@media(max-width:1080px){
+  .charts{grid-template-columns:1fr}
+  .dpad{grid-template-columns:200px minmax(0,1fr);gap:22px}
+  .dpad>div:last-child{grid-column:1/-1}
+}
+@media(max-width:900px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dist{flex-wrap:wrap}.dist button{flex:1 1 30%}
+  .dpad{grid-template-columns:1fr}
+}
+@media(max-width:700px){.wrap{padding:24px 12px}.stats{grid-template-columns:1fr}}
+</style></head>
+<body><main class="wrap">
+
+<div class="topbar">
+  <div>
+    <div class="kicker"><i></i><span data-i18n="kicker"></span></div>
+    <h1 data-i18n="title"></h1>
+  </div>
+  <div class="langsw" id="langsw">
+    <button data-lang="en" aria-pressed="true">EN</button>
+    <button data-lang="ja" aria-pressed="false">日本語</button>
+  </div>
+</div>
+<p class="lead" data-i18n-html="lead"></p>
+
+<section class="stats">
+  <div class="stat glass"><span data-i18n="stPools"></span><b id="count">—</b><small data-i18n="stPoolsSub"></small></div>
+  <div class="stat glass"><span data-i18n="stMax"></span><b>100</b><small data-i18n="stMaxSub"></small></div>
+  <div class="stat glass"><span data-i18n="stAvg"></span><b id="avg">—</b><small><span data-i18n="stMedian"></span> <span id="med">—</span></small></div>
+  <div class="stat glass"><span data-i18n="stChecked"></span><b style="font-size:18px">__CHECKED__</b><small data-i18n="stCheckedSub"></small></div>
+</section>
+
+<section class="charts">
+  <div class="chart glass">
+    <h3 data-i18n="chartDist"></h3>
+    <svg id="curve" viewBox="0 0 760 320" role="img"></svg>
+    <p class="cap" data-i18n="chartDistCap"></p>
+  </div>
+  <div class="chart glass">
+    <h3 data-i18n="chartHex"></h3>
+    <svg id="hex" viewBox="0 0 400 330" role="img"></svg>
+    <p class="cap" data-i18n-html="chartHexCap"></p>
+    <div class="hexnote" id="hexrare"></div>
+  </div>
+</section>
+
+<div class="dist" id="dist"></div>
+
+<details class="legend glass" open>
+  <summary data-i18n="legendTitle"></summary>
+  <div class="legendgrid" id="legendgrid"></div>
+</details>
+
+<h2 data-i18n="rankingTitle"></h2>
+<div class="tools">
+  <input id="q" data-i18n-ph="searchPh" aria-label="search">
+  <div class="chips" id="chips">
+    <button class="chip" data-g="all" aria-pressed="true" data-i18n="allGrades"></button>
+    <button class="chip" data-g="S" aria-pressed="false">S</button>
+    <button class="chip" data-g="A" aria-pressed="false">A</button>
+    <button class="chip" data-g="B" aria-pressed="false">B</button>
+    <button class="chip" data-g="C" aria-pressed="false">C</button>
+    <button class="chip" data-g="D" aria-pressed="false">D</button>
+  </div>
+  <span class="sigfilter" id="sigfilter"><span id="sigfilterlabel"></span><button id="sigclear" title="clear">✕</button></span>
+  <select id="sort"></select>
+  <select id="limit"></select>
+</div>
+<p class="hint" id="hint">—</p>
+
+<div class="tablebox">
+  <table>
+    <thead><tr>
+      <th style="width:64px">#</th>
+      <th data-i18n="thPool"></th>
+      <th style="width:158px" data-i18n="thHealth"></th>
+      <th style="width:120px" data-i18n="thStatus"></th>
+      <th style="width:168px" data-i18n="thReach"></th>
+      <th style="width:100px" data-i18n="thRtt"></th>
+      <th data-i18n="thSignals"></th>
+      <th style="width:170px" data-i18n="thStake"></th>
+    </tr></thead>
+    <tbody id="body"></tbody>
+  </table>
+</div>
+<p class="context" data-i18n="tableNote"></p>
+
+<h2 data-i18n="riskTitle"></h2>
+<p class="lead" data-i18n="riskLead"></p>
+<div class="tablebox" id="reftable"><table>
+  <thead><tr>
+    <th data-i18n="rkCandidate"></th><th data-i18n="rkCondition"></th><th data-i18n="rkMax"></th>
+    <th data-i18n="rkWhy"></th><th data-i18n="rkBenign"></th>
+  </tr></thead>
+  <tbody id="refbody"></tbody>
+</table></div>
+<p class="context" data-i18n="riskFootnote"></p>
+
+<details class="method-wrap"><summary data-i18n="methodTitle"></summary>
+  <div class="method glass" id="methodbody"></div>
+</details>
+
+<p class="foot" data-i18n="footer"></p>
+</main>
+
+<script>
+const data=__DATA__;
+
+/* ==================== i18n ==================== */
+const I18N={
+en:{
+ htmlLang:'en', locale:'en-US',
+ docTitle:'Cardano Relay Health Ranking',
+ kicker:'LIVE OBSERVATION + ON-CHAIN HISTORY',
+ title:'Cardano Relay Health Ranking',
+ lead:'Pools compared from ABCDE public data — those that minted blocks in the last 30 epochs and were actually probed. <b>Unreachable does not mean offline.</b> This is a comparison index built from a single vantage point at a single moment in time.',
+ stPools:'Pools ranked', stPoolsSub:'minting + probed pools',
+ stMax:'Maximum score', stMaxSub:'sum of 6 scoring axes',
+ stAvg:'Average score', stMedian:'median',
+ stChecked:'Observed at', stCheckedSub:'UTC / last check per row',
+ chartDist:'Score distribution',
+ chartDistCap:'The curve is the measured distribution, not a theoretical normal curve. Click a band to filter to that grade.',
+ chartHex:'How often each signal appears',
+ chartHexCap:'Share of all <b id="hexn">—</b> pools where each signal was observed. Click a vertex label to show only pools carrying that signal.',
+ legendTitle:'Legend — how to read this',
+ lgGrade:'Health grade', lgStatus:'Observed status', lgSignals:'Warning signals', lgHow:'How to use',
+ gradeDesc:{S:'almost nothing to follow up on',A:'only minor items to check',B:'some items to check',C:'several items to check',D:'high need for follow-up'},
+ gradeRange:{S:'95–100',A:'85–94',B:'70–84',C:'50–69',D:'below 50'},
+ statusDesc:{active:'every reachable host was at chain tip',partial:'reachability or tip sync was only partial',
+             degraded:'reachable but lagging behind chain tip',stopped:'no response from this vantage point'},
+ statusNote:'A firewall, rate limit, restart or routing difference can also produce “no response”.',
+ sigLegend:[['warn','Shared endpoint','same registered endpoint string as another pool'],
+            ['warn','Shared IP ×N','different names resolving to the same IP:port (N = max pools)'],
+            ['warn','KES in sync ×N','belongs to a cluster whose KES rotations are synchronised'],
+            ['bad','Borrowed infra','registers a founding entity bootstrap backbone'],
+            ['bad','All relays removed','a past certificate listed zero relays'],
+            ['ok','No signals','none of the above applies']],
+ howto:[['▶','<b>Click any row</b> to open the 6-axis hexagon and the full list of items to check'],
+        ['🔎','Search by ticker or pool ID'],
+        ['↕','Sort by score, RTT, stake or blocks'],
+        ['⬡','Both the distribution bands and the hexagon vertices are clickable filters']],
+ rankingTitle:'Ranking',
+ searchPh:'🔎 Search ticker or pool ID',
+ allGrades:'All',
+ sorts:[['rank','Sort: highest score'],['scoreAsc','Sort: lowest score'],['rtt','Sort: fastest RTT'],
+        ['stake','Sort: largest stake'],['blocks','Sort: most blocks'],['ticker','Sort: ticker (A→Z)']],
+ limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','Show all']],
+ thPool:'Pool', thHealth:'Health', thStatus:'Status', thReach:'Reachable / At tip',
+ thRtt:'Best RTT', thSignals:'Warning signals', thStake:'Stake / Blocks',
+ tableNote:'“Reachable” counts hosts that actually answered after expanding the registered endpoints via SRV; “At tip” counts how many of those had caught up to chain tip. Reachable can exceed the probe count because one name may expand to several hosts.',
+ noTicker:'(no ticker)', reachWord:'Reachable', probeWord:'probe', atTipWord:'At tip', hostsWord:'hosts',
+ noRtt:'not measured', blocksWord:'blocks', delegWord:'delegators',
+ hitsSome:(n,shown)=>n.toLocaleString('en-US')+' pools match'+(shown?' (showing top '+shown.toLocaleString('en-US')+')':'')+' — click a row for details',
+ hitsNone:'No pools match. Try a different search term or filter.',
+ sigFilterLabel:'Signal: ',
+ dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
+ dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
+ dBenign:'Why this may still be normal: ',
+ dMeta:(x)=>'Observed '+(x.checked||'—')+' · probed '+x.probed+' · reachable '+x.reachable+' · at tip '+x.atTip+' · registered endpoints '+x.entries,
+ copyBtn:'Copy pool ID', copyDone:'Copied ✓',
+ axes:{reach:'Reachability & tip',redundancy:'Relay redundancy',independence:'Infra independence',
+       ownership:'No borrowing',continuity:'Registration continuity',latency:'RTT'},
+ axesShort:{reach:'Reach/Tip',redundancy:'Redundancy',independence:'Independence',
+            ownership:'No borrow',continuity:'Continuity',latency:'RTT'},
+ signals:{reach:'Partial reach',ip:'Shared IP',kes:'KES in sync',tip:'Not at tip',ep:'Shared endpoint',redun:'Low redundancy'},
+ signalsDesc:{reach:'only part of the registered endpoints answered',
+              ip:'different names resolve to the same IP:port',
+              kes:'belongs to a cluster with synchronised KES rotations',
+              tip:'some reachable hosts had not caught up to chain tip',
+              ep:'same registered endpoint string as another pool',
+              redun:'2 or fewer reachable hosts (full marks needs 3+)'},
+ rare:{removedAll:'All relays removed',foreign:'Borrowed infra',noRtt:'RTT not measured'},
+ rareUnit:(c,p)=>c+' ('+p+')',
+ pills:{ep:'Shared endpoint',ip:'Shared IP',kes:'KES in sync',foreign:'Borrowed infra',removed:'All relays removed',none:'No signals'},
+ issues:{
+  FOREIGN:()=>'Registers a founding entity bootstrap backbone as its own relay',
+  TIP_ZERO:()=>'No reachable host was at chain tip when probed',
+  TIP_PARTIAL:()=>'Some reachable hosts were not at chain tip',
+  REACH_PARTIAL:(a,b)=>'Only part of the registered/expanded probe targets answered ('+a+'/'+b+')',
+  SINGLE_HOST:()=>'Only one reachable host observed, so redundancy is limited',
+  EP_SHARED:()=>'Shares an endpoint string with another pool',
+  IP_SHARED:(a)=>'Shares a resolved IP with other pools (up to '+a+' pools)',
+  KES_CLUSTER:(a,b)=>'Belongs to a synchronised KES rotation cluster (cluster '+a+', '+b+' pools)',
+  REMOVED_ALL:()=>'Previously removed all registered relays',
+  RTT_HIGH:(a)=>'Best RTT still exceeds one second ('+a+' ms)'
+ },
+ benign:{
+  reach:'check for a temporary restart, rate limiting, a firewall, or a routing difference from the vantage point',
+  single:'confirm the real setup, including SRV expansion and non-public relays, with the operator',
+  ep:'may simply be shared operation, a relay service, or shared hosting',
+  ip:'could be a common point of failure — check whether it is a shared service, NAT, or the same operator',
+  kes:'a correlation in operations, not proof of common ownership',
+  foreign:'check the registered endpoint to see whether it is a misconfiguration or deliberate',
+  removed:'may have been a maintenance or migration window — check the certificate timestamps',
+  rtt:'may be a one-off from distance or congestion — re-measure'
+ },
+ benignJoin:(a)=>a.join('; ')+'.',
+ benignNone:'Nothing in the current public signals needs following up.',
+ riskTitle:'Risk checklist behind the 100-point scale',
+ riskLead:'Every pool starts at 100. Where a public signal below is present, the pool does not earn those points — effectively a deduction. The score is not proof of safety; it is a way to line up how much extra checking a pool warrants.',
+ rkCandidate:'Risk candidate', rkCondition:'Detection condition', rkMax:'Max deduction',
+ rkWhy:'Why it could be a risk', rkBenign:'Could be normal / false positive',
+ risks:[
+  ['Unreachable or partially reachable','reachable hosts / probed below 100%','−17.5','Fewer entry points for external peers, narrowing routing options during an incident','Firewall, rate limit, restart, or a block affecting only the vantage point'],
+  ['Not at tip / partially synced','at-tip hosts / probed below 100%','−17.5','Reachable but behind chain tip raises questions about relay quality and sync state','Latency at the moment of measurement, or a timing gap in tip detection'],
+  ['Insufficient relay redundancy','2 or fewer reachable hosts','−15','Can become a single point of failure or lose connectivity during maintenance','Private relays and internal topology are not observable'],
+  ['Shared endpoint','several pools registering the same endpoint string','−10','May depend on the same failure point, relay service, or shared management','Using a third-party service does not imply common ownership'],
+  ['Shared resolved IP','different names resolving to the same IP:port','−10','If the substance is the same, an outage, attack or fault can spread at once','Could be NAT, load balancing, or shared hosting'],
+  ['Synchronised KES rotation','KES rotation forms a cluster with other pools','−5','A correlation suggesting shared automation, shared management, or one operator','Identical procedures or timing can coincide. Not proof of common ownership'],
+  ['Borrowed bootstrap backbone','registers a founding entity public bootstrap endpoint','−10','Its own public relays are invisible, and load and availability depend on another organisation','Could be a misconfiguration'],
+  ['History of removing all relays','a past certificate listed zero relays','−10','There was a period with nothing discoverable on chain, questioning continuity of public connectivity','Could be migration, DDoS mitigation, or brief maintenance'],
+  ['High RTT','best RTT above 150 ms','−4','Large propagation delay is a disadvantage for block and transaction propagation','Geographic distance from the vantage point, or temporary congestion']
+ ],
+ riskFootnote:'Reference only, no direct deduction: same domain, same ASN, same cloud provider, similar tickers, stake concentration. These easily sweep ordinary users and unrelated pools into the same group, so without further evidence they are not used to deduct points.',
+ methodTitle:'Scoring method and caveats',
+ method:'<p><b>Reachability & tip sync — 35 pts</b>: reachable/probed and at-tip/probed, 17.5 each.<br><b>Redundancy — 15 pts</b>: 3+ reachable hosts = 15, 2 = 11, 1 = 5.<br><b>Infrastructure & operational independence — 25 pts</b>: endpoint not shared 10, IP not shared 10, no synchronised KES cluster 5.<br><b>No borrowing — 10 pts</b>: awarded when no founding-entity bootstrap backbone is registered.<br><b>Registration continuity — 10 pts</b>: awarded when all relays were never removed in the past.<br><b>RTT — 5 pts</b>: ≤150 ms = 5, ≤300 = 4, ≤600 = 3, ≤1000 = 2, above that = 1.</p><p>Shared information is not proof that operators are the same, and RTT and connectivity results depend on the vantage point and the moment of measurement. Do not treat this ranking as the sole basis for a delegation decision.</p>',
+ footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Generated 2026-08-28',
+ unitPts:'', scoreOf:'/100'
+},
+ja:{
+ htmlLang:'ja', locale:'ja-JP',
+ docTitle:'Cardano Relay Health Ranking｜リレー健全性ランキング',
+ kicker:'LIVE OBSERVATION + ON-CHAIN HISTORY',
+ title:'Cardano Relay Health Ranking',
+ lead:'ABCDEの公開データから、直近30 epochでブロック生成実績があり、実際にプローブされたプールを比較しています。<b>到達不能＝オフラインとは断定しません。</b>1観測地点・1時点のスナップショットとして順位化した比較指標です。',
+ stPools:'ランキング対象', stPoolsSub:'minting + probed pools',
+ stMax:'満点', stMaxSub:'6つの評価軸の合計',
+ stAvg:'平均スコア', stMedian:'中央値',
+ stChecked:'観測時刻', stCheckedSub:'UTC / 行ごとの最終確認値',
+ chartDist:'スコア分布',
+ chartDistCap:'曲線は実測の分布です（正規分布の理論曲線ではありません）。帯をクリックするとその評価だけに絞り込めます。',
+ chartHex:'注意シグナルの出現率',
+ chartHexCap:'全 <b id="hexn">—</b> プール中で各シグナルが観測された割合。頂点のラベルをクリックすると、そのシグナルを持つプールだけを表示します。',
+ legendTitle:'凡例 — 表の見方',
+ lgGrade:'評価（Health）', lgStatus:'観測ステータス', lgSignals:'注意シグナル', lgHow:'操作',
+ gradeDesc:{S:'追加確認の必要がほぼない',A:'軽微な確認項目のみ',B:'確認項目あり',C:'確認項目が複数',D:'追加確認の必要度が高い'},
+ gradeRange:{S:'95〜100点',A:'85〜94点',B:'70〜84点',C:'50〜69点',D:'50点未満'},
+ statusDesc:{active:'到達したホストが全てTip同期',partial:'到達またはTip同期が部分的',
+             degraded:'到達するがchain tipから遅延',stopped:'この観測地点からは応答なし'},
+ statusNote:'firewall・rate limit・再起動・経路差でも「到達なし」になり得ます。',
+ sigLegend:[['warn','endpoint共有','他プールと同じ登録endpoint文字列'],
+            ['warn','IP共有 ×N','別名でも同じIP:portへ解決（N＝最大プール数）'],
+            ['warn','KES同期 ×N','KESローテーションが同期するクラスターに所属'],
+            ['bad','infra借用','創設組織のbootstrap backboneを登録'],
+            ['bad','全relay削除歴','過去の証明書でrelay数が0だった期間あり'],
+            ['ok','シグナルなし','上記いずれにも該当しない']],
+ howto:[['▶','<b>行をクリック</b>すると、6軸の六角形と確認項目の全文が開きます'],
+        ['🔎','Ticker / Pool ID で検索できます'],
+        ['↕','並び順はスコア・RTT・Stake・Blocks から選べます'],
+        ['⬡','分布図の帯・六角形の頂点はどちらもクリックで絞り込めます']],
+ rankingTitle:'ランキング',
+ searchPh:'🔎 Ticker / Pool ID を検索',
+ allGrades:'すべて',
+ sorts:[['rank','並び順：スコアが高い順'],['scoreAsc','並び順：スコアが低い順'],['rtt','並び順：RTTが速い順'],
+        ['stake','並び順：Stakeが多い順'],['blocks','並び順：Blocksが多い順'],['ticker','並び順：Ticker（A→Z）']],
+ limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','すべて表示']],
+ thPool:'Pool', thHealth:'Health', thStatus:'ステータス', thReach:'到達 / Tip同期',
+ thRtt:'Best RTT', thSignals:'注意シグナル', thStake:'Stake / Blocks',
+ tableNote:'「到達」は登録endpointをSRV展開して実際に応答したホスト数、「Tip同期」はそのうちchain tipに追いついていたホスト数です。1つの名前が複数ホストへ展開されるため、probe対象数より到達数が多くなることがあります。',
+ noTicker:'（Ticker未設定）', reachWord:'到達', probeWord:'probe', atTipWord:'Tip同期', hostsWord:'ホスト',
+ noRtt:'計測なし', blocksWord:'blocks', delegWord:'委任者',
+ hitsSome:(n,shown)=>n.toLocaleString('ja-JP')+' 件が該当'+(shown?'（上位 '+shown.toLocaleString('ja-JP')+' 件を表示）':'')+' — 行をクリックすると詳細が開きます',
+ hitsNone:'該当するプールがありません。検索語やフィルターを変えてみてください。',
+ sigFilterLabel:'シグナル：',
+ dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
+ dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
+ dBenign:'正常である可能性：',
+ dMeta:(x)=>'観測時刻 '+(x.checked||'—')+' ／ probe対象 '+x.probed+' · 到達 '+x.reachable+' · Tip同期 '+x.atTip+' · 登録endpoint '+x.entries,
+ copyBtn:'Pool IDをコピー', copyDone:'コピーしました ✓',
+ axes:{reach:'到達性・Tip同期',redundancy:'リレー冗長性',independence:'インフラ独立性',
+       ownership:'非借用',continuity:'登録継続性',latency:'RTT'},
+ axesShort:{reach:'到達/Tip',redundancy:'冗長性',independence:'独立性',
+            ownership:'非借用',continuity:'継続性',latency:'RTT'},
+ signals:{reach:'到達不足',ip:'IP共有',kes:'KES同期',tip:'Tip未同期',ep:'endpoint共有',redun:'冗長性不足'},
+ signalsDesc:{reach:'登録endpointの一部にしか到達できなかった',
+              ip:'別名でも同一IP:portへ解決する',
+              kes:'KESローテーションが同期するクラスターに所属',
+              tip:'到達できてもchain tipに追いついていないホストがある',
+              ep:'他プールと同じ登録endpoint文字列',
+              redun:'到達ホストが2台以下（満点は3台以上）'},
+ rare:{removedAll:'全relay削除歴',foreign:'infra借用',noRtt:'RTT計測なし'},
+ rareUnit:(c,p)=>c+'件 ('+p+')',
+ pills:{ep:'endpoint共有',ip:'IP共有',kes:'KES同期',foreign:'infra借用',removed:'全relay削除歴',none:'シグナルなし'},
+ issues:{
+  FOREIGN:()=>'創設組織のbootstrap backboneを自プールのrelayとして登録',
+  TIP_ZERO:()=>'プローブ時にTip同期した到達ホストが0',
+  TIP_PARTIAL:()=>'到達ホストの一部がTip同期していない',
+  REACH_PARTIAL:(a,b)=>'登録・展開されたprobe対象の一部のみ到達 ('+a+'/'+b+')',
+  SINGLE_HOST:()=>'観測上の到達ホストが1台のみで冗長性が限定的',
+  EP_SHARED:()=>'他プールと同じendpoint文字列を共有',
+  IP_SHARED:(a)=>'他プールと解決先IPを共有（最大'+a+'プール）',
+  KES_CLUSTER:(a,b)=>'KESローテーション同期クラスターに所属（cluster '+a+'、'+b+'プール）',
+  REMOVED_ALL:()=>'過去に登録relayを全て削除した履歴',
+  RTT_HIGH:(a)=>'最良RTTでも1秒超 ('+a+' ms)'
+ },
+ benign:{
+  reach:'一時的な再起動、rate limit、firewall、観測地点からの経路差を確認',
+  single:'SRV展開や非公開relayを含む実構成を運営者情報で確認',
+  ep:'同一運営、relayサービス、ホスティング共有の可能性',
+  ip:'同一障害点になり得る。共有サービス・NAT・同一運営のどれかを追加確認',
+  kes:'運用同期の相関であり、所有者同一とは断定しない',
+  foreign:'設定ミスか意図的構成かを登録endpointで確認',
+  removed:'保守・移行期間だった可能性を証明書日時で確認',
+  rtt:'遠距離配置や混雑による一時値か再測定'
+ },
+ benignJoin:(a)=>a.join('。')+'。',
+ benignNone:'現時点の公開シグナルからは、追加で確認すべき項目は見つかっていません。',
+ riskTitle:'100点基準のリスク洗い出し',
+ riskLead:'全プールを100点から開始し、下記の公開シグナルがある場合に加点を得られない＝実質減点とします。点数は「安全性の証明」ではなく、追加確認の必要度を揃えるための比較指標です。',
+ rkCandidate:'リスク候補', rkCondition:'検出条件', rkMax:'最大減点',
+ rkWhy:'リスクとなり得る理由', rkBenign:'正常・誤判定の可能性',
+ risks:[
+  ['到達不能・部分到達','reachable hosts / probed が100%未満','−17.5','外部peerが接続できる入口が減り、障害時の経路選択肢が狭まる可能性','firewall、rate limit、再起動、観測元だけの遮断'],
+  ['Tip未同期・部分同期','at-tip hosts / probed が100%未満','−17.5','到達できてもchain tipから遅れていればrelay品質や同期状態に懸念','測定瞬間の遅延、tip判定の時間差'],
+  ['リレー冗長性不足','到達ホストが2以下','−15','単一障害点や保守時の接続性低下につながる可能性','非公開relayや内部構成は観測できない'],
+  ['同一endpoint共有','複数poolが同じ登録endpoint文字列','−10','同じ障害点・relayサービス・共通管理へ依存する可能性','第三者サービスの利用だけで、同一所有とは限らない'],
+  ['解決先IP共有','異なる名前が同一IP:portへ解決','−10','名前が別でも実体が同じなら、停止・攻撃・障害が同時波及し得る','NAT、負荷分散、共有ホスティングの可能性'],
+  ['KES運用同期','KES rotationが他poolと同期するcluster','−5','共通自動化・共通管理・同一運営の可能性を示す相関','同じ手順や時期が偶然一致する可能性。所有者同一の証明ではない'],
+  ['bootstrap backbone借用','創設組織の公開bootstrap endpointを登録','−10','自らの公開relayが見えず、他組織インフラへ負荷と可用性を依存する可能性','設定ミスの可能性'],
+  ['全relay削除履歴','過去の証明書でrelay数が0','−10','chain上から発見できない期間があり、公開接続性の継続性に疑問','移行・DDoS対策・短期保守の可能性'],
+  ['高RTT','best RTTが150ms超','−4','伝播遅延が大きいとブロック・トランザクション伝播で不利になり得る','観測地点との地理距離や一時混雑']
+ ],
+ riskFootnote:'参考のみ・直接減点なし：同一ドメイン、同一ASN、同一クラウド事業者、Ticker類似、Stake集中。これらは一般利用者や無関係なpoolまで同一グループ扱いしやすいため、追加証拠なしではランキング減点に使いません。',
+ methodTitle:'採点方法と注意点',
+ method:'<p><b>到達性・Tip同期 35点</b>：reachable/probed と at-tip/probed を各17.5点。<br><b>冗長性 15点</b>：到達ホスト3以上=15、2=11、1=5。<br><b>インフラ・運用独立性 25点</b>：endpoint非共有10、IP非共有10、KES同期クラスターなし5。<br><b>非借用 10点</b>：founding-entity bootstrap backboneを登録していなければ加点。<br><b>登録継続性 10点</b>：過去に全relayを削除した履歴がなければ加点。<br><b>RTT 5点</b>：≤150ms=5、≤300=4、≤600=3、≤1000=2、それ以上=1。</p><p>共有情報は運営者同一の証明ではなく、RTTと疎通結果は観測地点・時刻に依存します。順位は委任判断の唯一の根拠にはしないでください。</p>',
+ footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Generated 2026-08-28',
+ unitPts:'pts', scoreOf:'/100'
+}};
+
+/* base language is English; only an explicit user choice switches it */
+let lang=(function(){
+  try{const s=localStorage.getItem('relaylang'); if(s&&I18N[s])return s;}catch(e){}
+  return 'en';
+})();
+const T=()=>I18N[lang];
+
+const fmt=n=>new Intl.NumberFormat(T().locale,{maximumFractionDigits:1}).format(n);
+const pct=n=>(Math.round(n*1000)/10).toFixed(1)+'%';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ==================== model ==================== */
+const GRADES=[
+  {g:'S',min:95,max:100},{g:'A',min:85,max:95},{g:'B',min:70,max:85},
+  {g:'C',min:50,max:70},{g:'D',min:0,max:50}
+];
+const GCOL={S:'#34e2b0',A:'#22d3ee',B:'#8b5cff',C:'#fbbf24',D:'#ff5c93'};
+const gradeOf=s=>GRADES.find(x=>s>=x.min).g;
+const STATES=['active','partial','degraded','stopped'];
+const STCLS={active:'st-active',partial:'st-partial',degraded:'st-degraded',stopped:'st-stopped',unknown:'st-unknown'};
+/* Status is derived from the probe counts themselves, so the page needs nothing
+   beyond the three public CSVs. (Verified identical to the recorded observation
+   log for all 1282 pools.) */
+function stateOf(x){
+  if(x.probed<=0)return 'unknown';
+  if(x.reachable===0)return 'stopped';
+  if(x.atTip===0)return 'degraded';
+  if(x.reachable<x.probed||x.atTip<x.reachable)return 'partial';
+  return 'active';
+}
+const AXES=[['reach',35],['redundancy',15],['independence',25],['ownership',10],['continuity',10],['latency',5]];
+const SIGNALS=[
+  {k:'reach',test:x=>x.reachable<x.probed},
+  {k:'ip'   ,test:x=>!!x.sharedIp},
+  {k:'kes'  ,test:x=>!!x.kesLinked},
+  {k:'tip'  ,test:x=>x.atTip<x.reachable||x.atTip===0},
+  {k:'ep'   ,test:x=>!!x.shared},
+  {k:'redun',test:x=>x.reachable<=2}
+];
+
+data.forEach(x=>{
+  x.grade=gradeOf(x.score);
+  x._st=stateOf(x);
+  x.issues=(x.issues||[]).map(i=>typeof i==='string'?{code:'RAW',a:i}:i);
+});
+const N=data.length;
+const counts={};GRADES.forEach(g=>counts[g.g]=0);data.forEach(x=>counts[x.grade]++);
+const sortedScores=data.map(x=>x.score).sort((a,b)=>a-b);
+const sigCounts={};SIGNALS.forEach(s=>sigCounts[s.k]=data.filter(s.test).length);
+const rareCounts={removedAll:data.filter(x=>x.removedAll).length,
+                  foreign:data.filter(x=>x.foreign).length,
+                  noRtt:data.filter(x=>x.rtt==null).length};
+
+function issueText(i){
+  if(i.code==='RAW')return i.a;
+  const f=T().issues[i.code];
+  return f?f(i.a,i.b):i.code;
+}
+function benignList(x){
+  const t=T().benign,a=[];
+  if(x.reachable<x.probed||x.atTip<x.reachable)a.push(t.reach);
+  if(x.reachable===1)a.push(t.single);
+  if(x.shared)a.push(t.ep);
+  if(x.sharedIp)a.push(t.ip);
+  if(x.kesLinked)a.push(t.kes);
+  if(x.foreign)a.push(t.foreign);
+  if(x.removedAll)a.push(t.removed);
+  if(x.rtt>1000)a.push(t.rtt);
+  return a.length?T().benignJoin(a):T().benignNone;
+}
+
+/* ==================== hexagon helpers ==================== */
+function hexPoint(cx,cy,r,i,n,v){
+  const a=(-90+i*(360/n))*Math.PI/180;
+  return [cx+r*v*Math.cos(a),cy+r*v*Math.sin(a)];
+}
+function hexPoly(cx,cy,r,vals){
+  return vals.map((v,i)=>hexPoint(cx,cy,r,i,vals.length,v).map(n=>n.toFixed(1)).join(',')).join(' ');
+}
+
+/* ==================== charts ==================== */
+function drawCurve(){
+  const svg=document.querySelector('#curve');
+  const W=760,H=320,L=46,R=16,Tp=34,Bt=54;
+  const x0=27.5,x1=100.5;
+  const px=v=>L+(v-x0)/(x1-x0)*(W-L-R);
+  const BIN=5,bins=[];
+  for(let s=30;s<100;s+=BIN)bins.push({lo:s,hi:s+BIN,c:0});
+  data.forEach(d=>{let i=Math.floor((d.score-30)/BIN);if(i>=bins.length)i=bins.length-1;if(i<0)i=0;bins[i].c++;});
+  const maxc=Math.max(...bins.map(b=>b.c));
+  const py=c=>H-Bt-(c/maxc)*(H-Tp-Bt), base=py(0);
+  const pts=[[px(x0),base]].concat(bins.map(b=>[px((b.lo+b.hi)/2),py(b.c)]),[[px(100),py(bins[bins.length-1].c)]]);
+  function spline(p){
+    let d='M'+p[0][0].toFixed(1)+' '+p[0][1].toFixed(1);
+    for(let i=0;i<p.length-1;i++){
+      const p0=p[i-1]||p[i],p1=p[i],p2=p[i+1],p3=p[i+2]||p[i+1],t=.62;
+      const c1x=p1[0]+(p2[0]-p0[0])/6*t,c1y=Math.min(base,p1[1]+(p2[1]-p0[1])/6*t);
+      const c2x=p2[0]-(p3[0]-p1[0])/6*t,c2y=Math.min(base,p2[1]-(p3[1]-p1[1])/6*t);
+      d+='C'+c1x.toFixed(1)+' '+c1y.toFixed(1)+','+c2x.toFixed(1)+' '+c2y.toFixed(1)+','+p2[0].toFixed(1)+' '+p2[1].toFixed(1);
+    }
+    return d;
+  }
+  const line=spline(pts);
+  const area=line+'L'+px(100).toFixed(1)+' '+base+'L'+px(x0).toFixed(1)+' '+base+'Z';
+  let defs='',bands='',labels='',hit='';
+  GRADES.forEach((g,i)=>{
+    const a=px(Math.max(x0,g.min)),b=px(Math.min(x1,g.max)),w=Math.max(0,b-a);
+    defs+='<clipPath id="cp'+g.g+'"><rect x="'+a.toFixed(1)+'" y="0" width="'+w.toFixed(1)+'" height="'+H+'"/></clipPath>'+
+      '<linearGradient id="lg'+g.g+'" x1="0" y1="0" x2="0" y2="1">'+
+      '<stop offset="0%" stop-color="'+GCOL[g.g]+'" stop-opacity=".62"/>'+
+      '<stop offset="100%" stop-color="'+GCOL[g.g]+'" stop-opacity=".05"/></linearGradient>';
+    bands+='<path d="'+area+'" fill="url(#lg'+g.g+')" clip-path="url(#cp'+g.g+')"/>';
+    if(g.min>x0)bands+='<line x1="'+a.toFixed(1)+'" y1="'+Tp+'" x2="'+a.toFixed(1)+'" y2="'+base+'" stroke="'+GCOL[g.g]+'" stroke-opacity=".45" stroke-dasharray="3 4"/>';
+    const cx=(a+b)/2;
+    labels+='<g><rect x="'+(cx-19).toFixed(1)+'" y="'+(Tp-26)+'" width="38" height="21" rx="7" fill="'+GCOL[g.g]+'"/>'+
+      '<text x="'+cx.toFixed(1)+'" y="'+(Tp-11)+'" text-anchor="middle" font-size="13" font-weight="800" fill="#0a0620">'+g.g+'</text>'+
+      '<text x="'+cx.toFixed(1)+'" y="'+(base+18)+'" text-anchor="middle" font-size="11.5" font-weight="700" fill="'+GCOL[g.g]+'">'+fmt(counts[g.g])+'</text>'+
+      '<text x="'+cx.toFixed(1)+'" y="'+(base+31)+'" text-anchor="middle" font-size="10" fill="#6e73a6">'+pct(counts[g.g]/N)+'</text></g>';
+    hit+='<rect class="hit" data-g="'+g.g+'" x="'+a.toFixed(1)+'" y="'+(Tp-28)+'" width="'+w.toFixed(1)+'" height="'+(base-Tp+40)+'" fill="transparent" style="cursor:pointer"><title>'+g.g+'</title></rect>';
+  });
+  let ticks='';
+  [30,40,50,60,70,80,85,90,95,100].forEach(v=>{
+    ticks+='<line x1="'+px(v).toFixed(1)+'" y1="'+base+'" x2="'+px(v).toFixed(1)+'" y2="'+(base+4)+'" stroke="#4b4f80"/>'+
+      '<text x="'+px(v).toFixed(1)+'" y="'+(base+45)+'" text-anchor="middle" font-size="10" fill="#6e73a6">'+v+'</text>';
+  });
+  svg.innerHTML='<defs>'+defs+
+    '<linearGradient id="stroke" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ff5c93"/>'+
+    '<stop offset="34%" stop-color="#fbbf24"/><stop offset="62%" stop-color="#8b5cff"/>'+
+    '<stop offset="100%" stop-color="#34e2b0"/></linearGradient>'+
+    '<filter id="glow" x="-30%" y="-60%" width="160%" height="260%"><feGaussianBlur stdDeviation="5" result="b"/>'+
+    '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'+
+    bands+'<path d="'+line+'" fill="none" stroke="url(#stroke)" stroke-width="2.6" filter="url(#glow)" stroke-linecap="round"/>'+
+    '<line x1="'+L+'" y1="'+base+'" x2="'+(W-R)+'" y2="'+base+'" stroke="#4b4f80"/>'+ticks+
+    '<text x="'+(L-8)+'" y="'+(base+4)+'" text-anchor="end" font-size="10" fill="#6e73a6">0</text>'+
+    '<text x="'+(L-8)+'" y="'+(py(maxc)+4)+'" text-anchor="end" font-size="10" fill="#6e73a6">'+maxc+'</text>'+
+    labels+hit;
+}
+
+function drawHex(){
+  const svg=document.querySelector('#hex'),cx=200,cy=158,r=105;
+  const vals=SIGNALS.map(s=>sigCounts[s.k]/N);
+  let grid='';
+  [.25,.5,.75,1].forEach(t=>{grid+='<polygon points="'+hexPoly(cx,cy,r,SIGNALS.map(()=>t))+'" fill="none" stroke="rgba(255,255,255,'+(t===1?.22:.1)+')"/>';});
+  SIGNALS.forEach((s,i)=>{const p=hexPoint(cx,cy,r,i,SIGNALS.length,1);
+    grid+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0].toFixed(1)+'" y2="'+p[1].toFixed(1)+'" stroke="rgba(255,255,255,.1)"/>';});
+  [.25,.5,.75,1].forEach(t=>{grid+='<text x="'+(cx-6)+'" y="'+(cy-r*t+11)+'" text-anchor="end" font-size="9" fill="#5a5f92">'+(t*100)+'%</text>';});
+  let dots='',labels='';
+  SIGNALS.forEach((s,i)=>{
+    const p=hexPoint(cx,cy,r,i,SIGNALS.length,vals[i]);
+    dots+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="4.5" fill="#22d3ee" stroke="#06031a" stroke-width="2"/>';
+    const lp=hexPoint(cx,cy,r,i,SIGNALS.length,1.3);
+    const anchor=Math.abs(lp[0]-cx)<6?'middle':(lp[0]>cx?'start':'end');
+    const dy=lp[1]<cy-10?-3:(lp[1]>cy+10?12:4);
+    labels+='<g class="hexlabel" data-k="'+s.k+'" style="cursor:pointer">'+
+      '<text x="'+lp[0].toFixed(1)+'" y="'+(lp[1]+dy).toFixed(1)+'" text-anchor="'+anchor+'" font-size="12" font-weight="700" fill="#d8d9f5">'+esc(T().signals[s.k])+'</text>'+
+      '<text x="'+lp[0].toFixed(1)+'" y="'+(lp[1]+dy+15).toFixed(1)+'" text-anchor="'+anchor+'" font-size="13" font-weight="800" fill="#34e2b0">'+pct(vals[i])+'</text>'+
+      '<title>'+esc(T().signals[s.k]+' — '+T().signalsDesc[s.k])+'</title></g>';
+  });
+  svg.innerHTML='<defs><linearGradient id="hexfill" x1="0" y1="0" x2="1" y2="1">'+
+    '<stop offset="0%" stop-color="#8b5cff" stop-opacity=".62"/><stop offset="100%" stop-color="#22d3ee" stop-opacity=".36"/></linearGradient>'+
+    '<filter id="hglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6" result="b"/>'+
+    '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'+grid+
+    '<polygon points="'+hexPoly(cx,cy,r,vals)+'" fill="url(#hexfill)" stroke="#a78bfa" stroke-width="2.2" filter="url(#hglow)"/>'+dots+labels;
+  document.querySelector('#hexrare').innerHTML=
+    '<span class="pill bad">'+esc(T().rare.removedAll)+' '+T().rareUnit(rareCounts.removedAll,pct(rareCounts.removedAll/N))+'</span>'+
+    '<span class="pill bad">'+esc(T().rare.foreign)+' '+T().rareUnit(rareCounts.foreign,pct(rareCounts.foreign/N))+'</span>'+
+    '<span class="pill">'+esc(T().rare.noRtt)+' '+T().rareUnit(rareCounts.noRtt,pct(rareCounts.noRtt/N))+'</span>';
+}
+
+function poolHex(x){
+  const cx=86,cy=88,r=54;
+  const vals=AXES.map(a=>(x.parts[a[0]]||0)/a[1]);
+  let grid='';
+  [.33,.66,1].forEach(t=>{grid+='<polygon points="'+hexPoly(cx,cy,r,AXES.map(()=>t))+'" fill="none" stroke="rgba(255,255,255,'+(t===1?.2:.09)+')"/>';});
+  AXES.forEach((a,i)=>{const p=hexPoint(cx,cy,r,i,AXES.length,1);
+    grid+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0].toFixed(1)+'" y2="'+p[1].toFixed(1)+'" stroke="rgba(255,255,255,.09)"/>';});
+  let lb='';
+  AXES.forEach((a,i)=>{
+    const p=hexPoint(cx,cy,r,i,AXES.length,1.36);
+    const anchor=Math.abs(p[0]-cx)<6?'middle':(p[0]>cx?'start':'end');
+    lb+='<text x="'+p[0].toFixed(1)+'" y="'+(p[1]+(p[1]<cy-10?-1:(p[1]>cy+10?9:4))).toFixed(1)+
+      '" text-anchor="'+anchor+'" font-size="8.5" fill="#8085b8">'+esc(T().axesShort[a[0]])+'</text>';
+  });
+  return '<svg viewBox="0 0 172 176">'+grid+
+    '<polygon points="'+hexPoly(cx,cy,r,vals)+'" fill="'+GCOL[x.grade]+'" fill-opacity=".3" stroke="'+GCOL[x.grade]+'" stroke-width="2"/>'+
+    vals.map((v,i)=>{const p=hexPoint(cx,cy,r,i,AXES.length,v);
+      return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3" fill="'+GCOL[x.grade]+'"/>';}).join('')+lb+'</svg>';
+}
+
+/* ==================== rows ==================== */
+function signalsHtml(x){
+  const p=[],P=T().pills;
+  if(x.shared)    p.push('<span class="pill warn">'+esc(P.ep)+'</span>');
+  if(x.sharedIp)  p.push('<span class="pill warn">'+esc(P.ip)+' ×'+x.sharedIpPools+'</span>');
+  if(x.kesLinked) p.push('<span class="pill warn">'+esc(P.kes)+' ×'+x.kesClusterSize+'</span>');
+  if(x.foreign)   p.push('<span class="pill bad">'+esc(P.foreign)+'</span>');
+  if(x.removedAll)p.push('<span class="pill bad">'+esc(P.removed)+'</span>');
+  return p.length?p.join(''):'<span class="pill ok">'+esc(P.none)+'</span>';
+}
+function miniBar(x){
+  return '<div class="mini c'+x.grade+'">'+AXES.map(a=>{
+    const v=x.parts[a[0]]||0;
+    return '<i style="flex:'+a[1]+'" title="'+esc(T().axes[a[0]])+' '+fmt(v)+'/'+a[1]+'"><b style="width:'+(v/a[1]*100).toFixed(0)+'%"></b></i>';
+  }).join('')+'</div>';
+}
+function detailRow(x){
+  const axes=AXES.map(a=>{
+    const v=x.parts[a[0]]||0,p=v/a[1]*100;
+    return '<div class="lb">'+esc(T().axes[a[0]])+'</div>'+
+      '<div class="bar'+(p<60?' low':'')+'"><i style="width:'+p.toFixed(1)+'%"></i></div>'+
+      '<div class="vl">'+fmt(v)+'<span class="sub"> /'+a[1]+'</span></div>';
+  }).join('');
+  const issues=x.issues.length
+    ? '<ul class="issues">'+x.issues.map(i=>'<li>'+esc(issueText(i))+'</li>').join('')+'</ul>'
+    : '<p class="noissue">'+esc(T().dNoIssue)+'</p>';
+  return '<tr class="detail"><td colspan="8"><div class="dpad">'+
+    '<div class="hexcell"><h3>'+esc(T().dHex)+'</h3>'+poolHex(x)+'</div>'+
+    '<div><h3>'+esc(T().dBreak(x.score))+'</h3><div class="axis">'+axes+'</div>'+
+      '<div class="idrow"><code>'+esc(x.pool)+'</code>'+
+      '<button class="btn" data-copy="'+esc(x.pool)+'">'+esc(T().copyBtn)+'</button></div></div>'+
+    '<div><h3>'+esc(T().dSignals(x.issues.length))+'</h3>'+issues+
+      '<p class="note"><b>'+esc(T().dBenign)+'</b>'+esc(benignList(x))+'</p>'+
+      '<p class="note">'+esc(T().dMeta(x))+'</p></div>'+
+  '</div></td></tr>';
+}
+function rowHtml(x){
+  const t=T(),open=openSet.has(x.pool);
+  const tipCls=x.atTip===0?'cD':(x.atTip<x.reachable?'cC':'cS');
+  return '<tr class="row'+(open?' open':'')+'" data-pool="'+esc(x.pool)+'">'+
+    '<td class="rank"><span class="caret">▶</span> '+x.rank+'</td>'+
+    '<td><div class="ticker">'+esc(x.ticker||t.noTicker)+'</div>'+
+      '<div class="poolid" title="'+esc(x.pool)+'">'+esc(x.pool)+'</div></td>'+
+    '<td><div class="scorecell"><span class="badge '+x.grade+'">'+x.grade+'</span>'+
+      '<span class="scoreval c'+x.grade+'">'+x.score+'</span><span class="sub">'+t.scoreOf+'</span></div>'+miniBar(x)+'</td>'+
+    '<td><span class="st '+STCLS[x._st]+'"><span class="dot"></span>'+esc(t.statusLabel[x._st])+'</span></td>'+
+    '<td class="num"><div>'+esc(t.reachWord)+' <b>'+x.reachable+'</b> <span class="sub">/ '+esc(t.probeWord)+' '+x.probed+'</span></div>'+
+      '<div class="sub">'+esc(t.atTipWord)+' <b class="'+tipCls+'">'+x.atTip+'</b> '+esc(t.hostsWord)+'</div></td>'+
+    '<td class="num">'+(x.rtt==null?'<span class="sub">'+esc(t.noRtt)+'</span>':'<b>'+fmt(x.rtt)+'</b> <span class="sub">ms</span>')+'</td>'+
+    '<td>'+signalsHtml(x)+'</td>'+
+    '<td class="num"><div>'+fmt(x.stake)+' <span class="sub">₳</span></div>'+
+      '<div class="sub">'+fmt(x.blocks)+' '+esc(t.blocksWord)+' · '+fmt(x.delegators)+' '+esc(t.delegWord)+'</div></td>'+
+  '</tr>'+(open?detailRow(x):'');
+}
+
+const SORTS={
+  rank:(a,b)=>a.rank-b.rank,
+  scoreAsc:(a,b)=>b.rank-a.rank,
+  rtt:(a,b)=>((a.rtt==null)-(b.rtt==null))||((a.rtt||0)-(b.rtt||0))||(a.rank-b.rank),
+  stake:(a,b)=>b.stake-a.stake||a.rank-b.rank,
+  blocks:(a,b)=>b.blocks-a.blocks||a.rank-b.rank,
+  ticker:(a,b)=>(a.ticker||'￿').localeCompare(b.ticker||'￿')||a.rank-b.rank
+};
+
+/* ==================== state ==================== */
+const body=document.querySelector('#body'),q=document.querySelector('#q'),
+      limit=document.querySelector('#limit'),sortSel=document.querySelector('#sort'),
+      hint=document.querySelector('#hint'),chips=document.querySelector('#chips'),
+      dist=document.querySelector('#dist'),sigBox=document.querySelector('#sigfilter'),
+      sigLabel=document.querySelector('#sigfilterlabel'),langsw=document.querySelector('#langsw');
+let grade='all',signal=null;
+const openSet=new Set();
+
+function render(){
+  const s=q.value.trim().toLowerCase(),max=+limit.value;
+  const sig=signal?SIGNALS.find(z=>z.k===signal):null;
+  const hits=data.filter(x=>
+    (grade==='all'||x.grade===grade)&&(!sig||sig.test(x))&&
+    (!s||(x.ticker||'').toLowerCase().indexOf(s)>=0||x.pool.toLowerCase().indexOf(s)>=0)
+  ).sort(SORTS[sortSel.value]);
+  const rows=hits.slice(0,max);
+  hint.textContent=hits.length?T().hitsSome(hits.length,hits.length>rows.length?rows.length:0):T().hitsNone;
+  body.innerHTML=rows.map(rowHtml).join('')||
+    '<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--dim)">—</td></tr>';
+}
+function syncChips(){
+  Array.prototype.forEach.call(chips.children,c=>c.setAttribute('aria-pressed',String(c.dataset.g===grade)));
+  Array.prototype.forEach.call(dist.children,c=>c.setAttribute('aria-pressed',String(c.dataset.g===grade)));
+  const sig=signal?SIGNALS.find(z=>z.k===signal):null;
+  sigBox.classList.toggle('on',!!sig);
+  if(sig)sigLabel.textContent=T().sigFilterLabel+T().signals[sig.k];
+}
+function setGrade(g){grade=g;syncChips();render();}
+function setSignal(k){signal=k;syncChips();render();}
+
+/* ==================== language application ==================== */
+function applyLang(){
+  const t=T();
+  t.statusLabel={
+    active:  lang==='ja'?'正常'   :'Healthy',
+    partial: lang==='ja'?'一部のみ':'Partial',
+    degraded:lang==='ja'?'Tip遅れ' :'Behind tip',
+    stopped: lang==='ja'?'到達なし':'No response',
+    unknown: lang==='ja'?'未観測'  :'Not observed'
+  };
+  document.documentElement.lang=t.htmlLang;
+  document.title=t.docTitle;
+
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t[el.dataset.i18n];});
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{el.innerHTML=t[el.dataset.i18nHtml];});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=t[el.dataset.i18nPh];});
+
+  const keepSort=sortSel.value||'rank',keepLimit=limit.value||'100';
+  sortSel.innerHTML=t.sorts.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('');
+  limit.innerHTML=t.limits.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('');
+  sortSel.value=keepSort;limit.value=keepLimit;
+
+  document.querySelector('#count').textContent=fmt(N);
+  document.querySelector('#avg').textContent=fmt(data.reduce((a,b)=>a+b.score,0)/N);
+  document.querySelector('#med').textContent=fmt(sortedScores[Math.floor(N/2)]);
+
+  dist.innerHTML=GRADES.map(g=>
+    '<button class="c'+g.g+'" data-g="'+g.g+'" aria-pressed="false" title="'+esc(t.gradeDesc[g.g])+'">'+
+    '<span class="badge '+g.g+'">'+g.g+'</span>'+
+    '<div class="n">'+fmt(counts[g.g])+' <span class="sub">'+pct(counts[g.g]/N)+'</span></div>'+
+    '<div class="r">'+esc(t.gradeRange[g.g])+' · '+esc(t.gradeDesc[g.g])+'</div>'+
+    '<div class="track"><i style="width:'+(counts[g.g]/Math.max(...Object.values(counts))*100).toFixed(1)+'%"></i></div>'+
+    '</button>').join('');
+
+  document.querySelector('#legendgrid').innerHTML=
+    '<div><h3>'+esc(t.lgGrade)+'</h3><ul>'+GRADES.map(g=>
+      '<li><span class="badge '+g.g+'">'+g.g+'</span><span><b>'+esc(t.gradeRange[g.g])+'</b> — '+esc(t.gradeDesc[g.g])+'</span></li>').join('')+'</ul></div>'+
+    '<div><h3>'+esc(t.lgStatus)+'</h3><ul>'+STATES.map(s=>{
+      const col={active:'var(--m)',partial:'var(--a)',degraded:'#ff9558',stopped:'var(--p)'}[s];
+      return '<li><span class="dot" style="background:'+col+';box-shadow:0 0 9px '+col+'"></span>'+
+        '<span><b>'+esc(t.statusLabel[s])+'</b> — '+esc(t.statusDesc[s])+'</span></li>';}).join('')+
+      '</ul><p class="context" style="margin-top:8px">'+esc(t.statusNote)+'</p></div>'+
+    '<div><h3>'+esc(t.lgSignals)+'</h3><ul>'+t.sigLegend.map(r=>
+      '<li><span class="pill '+r[0]+'">'+esc(r[1])+'</span><span>'+esc(r[2])+'</span></li>').join('')+'</ul></div>'+
+    '<div><h3>'+esc(t.lgHow)+'</h3><ul>'+t.howto.map(r=>
+      '<li><span class="caret">'+r[0]+'</span><span>'+r[1]+'</span></li>').join('')+'</ul></div>';
+
+  document.querySelector('#refbody').innerHTML=t.risks.map(r=>
+    '<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('');
+  document.querySelector('#methodbody').innerHTML=t.method;
+
+  drawCurve();drawHex();syncChips();render();
+  Array.prototype.forEach.call(langsw.children,b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));
+}
+
+/* ==================== events ==================== */
+body.addEventListener('click',function(e){
+  const cp=e.target.closest('[data-copy]');
+  if(cp){
+    if(navigator.clipboard)navigator.clipboard.writeText(cp.dataset.copy);
+    cp.textContent=T().copyDone;
+    setTimeout(()=>{cp.textContent=T().copyBtn;},1400);
+    return;
+  }
+  if(e.target.closest('tr.detail'))return;
+  const tr=e.target.closest('tr.row');if(!tr)return;
+  const p=tr.dataset.pool;
+  if(openSet.has(p))openSet.delete(p);else openSet.add(p);
+  render();
+});
+chips.addEventListener('click',e=>{const b=e.target.closest('.chip');if(b)setGrade(b.dataset.g);});
+dist.addEventListener('click',e=>{const b=e.target.closest('button[data-g]');if(b)setGrade(b.dataset.g===grade?'all':b.dataset.g);});
+document.querySelector('#curve').addEventListener('click',e=>{
+  const h=e.target.closest('.hit');if(h)setGrade(h.dataset.g===grade?'all':h.dataset.g);});
+document.querySelector('#hex').addEventListener('click',e=>{
+  const h=e.target.closest('.hexlabel');if(h)setSignal(h.dataset.k===signal?null:h.dataset.k);});
+document.querySelector('#sigclear').addEventListener('click',()=>setSignal(null));
+langsw.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-lang]');if(!b||b.dataset.lang===lang)return;
+  lang=b.dataset.lang;
+  try{localStorage.setItem('relaylang',lang);}catch(err){}
+  applyLang();
+});
+q.addEventListener('input',render);
+limit.addEventListener('change',render);
+sortSel.addEventListener('change',render);
+
+applyLang();
+</script></body></html>

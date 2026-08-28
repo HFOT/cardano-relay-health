@@ -1,0 +1,63 @@
+name: Rebuild ranking
+
+# Pulls the three public ABCDE CSVs, regenerates index.html, and commits it
+# only when the output actually changed.
+on:
+  schedule:
+    - cron: '17 5 * * *'   # 05:17 UTC daily
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/**'
+      - '.github/workflows/update.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rebuild-ranking
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Windows PowerShell 5.1 is the environment the generator is written and tested against.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch ABCDE source data
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          $base = 'https://raw.githubusercontent.com/BEACNpool/ABCDE/main/data/small'
+          New-Item -ItemType Directory -Force data | Out-Null
+          foreach ($f in 'relay_pool_health.csv','relay_shared_hosts.csv','pool_operator_kes_members.csv') {
+            Invoke-WebRequest -Uri "$base/$f" -OutFile "data/$f" -UseBasicParsing
+            $size = (Get-Item "data/$f").Length
+            if ($size -lt 1024) { throw "$f looks truncated ($size bytes)" }
+            Write-Output "$f  $size bytes"
+          }
+
+      - name: Generate page
+        shell: powershell
+        run: |
+          ./tools/generate-ranking.ps1 -SrcDir data -Template tools/template.html -OutFile index.html
+          $size = (Get-Item index.html).Length
+          if ($size -lt 200000) { throw "index.html looks wrong ($size bytes)" }
+          Write-Output "index.html  $size bytes"
+
+      - name: Commit if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- index.html; then
+            echo "No change in index.html — nothing to commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Rebuild ranking from ABCDE data ($(date -u '+%Y-%m-%d'))"
+          git push
