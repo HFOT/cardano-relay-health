@@ -40,13 +40,21 @@ jobs:
             Write-Output "$f  $size bytes"
           }
 
+      - name: Check upstream schema
+        shell: powershell
+        run: ./tools/check-schema.ps1 -SrcDir data
+
       - name: Generate page
         shell: powershell
         run: |
-          ./tools/generate-ranking.ps1 -SrcDir data -Template tools/template.html -OutFile index.html
+          $out = ./tools/generate-ranking.ps1 -SrcDir data -Template tools/template.html -OutFile index.html
+          Write-Output $out
+          # A dropped filter column would empty the ranking without erroring.
+          $ranked = [int](($out | Select-String -Pattern 'with (\d+) ranked').Matches.Groups[1].Value)
+          if ($ranked -lt 500) { throw "Only $ranked pools ranked - expected ~1300. Refusing to publish." }
           $size = (Get-Item index.html).Length
           if ($size -lt 200000) { throw "index.html looks wrong ($size bytes)" }
-          Write-Output "index.html  $size bytes"
+          Write-Output "index.html  $size bytes, $ranked pools"
 
       - name: Commit if changed
         shell: bash
