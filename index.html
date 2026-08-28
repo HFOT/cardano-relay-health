@@ -204,6 +204,13 @@ tr.detail>td{background:rgba(6,3,26,.72);border-bottom:1px solid var(--stroke2);
 details.method-wrap{margin-top:24px}
 details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:var(--v2)}
 .foot{color:var(--dim);margin-top:24px;font-size:12px}
+.cl{list-style:none;margin:0;padding:0}
+.cl li{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.cl li:last-child{border-bottom:0;padding-bottom:0}
+.cl li:first-child{padding-top:0}
+.cl .d{color:var(--dim);font-size:11px;font-variant-numeric:tabular-nums;letter-spacing:.05em}
+.cl b{display:block;color:#fff;margin:2px 0 3px;font-size:13.5px}
+.cl p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.7}
 #reftable table{min-width:820px}
 #reftable td{font-size:13px;color:var(--muted);vertical-align:top}
 #reftable td:first-child{color:var(--ink);font-weight:600}
@@ -358,6 +365,10 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
   <div class="method glass" id="methodbody"></div>
 </details>
 
+<details class="method-wrap"><summary data-i18n="clTitle"></summary>
+  <div class="method glass" id="clbody"></div>
+</details>
+
 <p class="foot" data-i18n="footer"></p>
 
 <button class="gfab" id="gfab"><i></i><span id="gfablabel"></span></button>
@@ -427,6 +438,30 @@ en:{
  grpUnranked:'not in the ranking - minted no blocks recently, or was not probed',
  grpHint:(n,ranked)=>'All '+n+' pools sharing this'+(ranked<n?', including '+(n-ranked)+' outside the ranking':'')+'. Click a row for details.',
  backToRanking:'\u2190 Back to the ranking',
+ clTitle:'Changelog',
+ clNote:'The data itself refreshes through the daily automatic rebuild and is not listed here. This is the history of the page: what changed, and why.',
+ changelog:[
+  {d:'2026-08-28',t:'First release',
+   w:'Ranking of 1,282 minting, probed pools on six axes, with a score distribution curve, a signal-frequency hexagon, an EN/JA switch, and a daily automatic rebuild from the ABCDE data.'},
+  {d:'2026-08-28',t:'Build guard for upstream schema changes',
+   w:'If a column this page depends on disappears from the source CSVs, the build now fails instead of publishing silently wrong scores. The source schema was still evolving at the time.'},
+  {d:'2026-08-28',t:'Holder guide added',
+   w:'A panel explaining each signal in plain language, with a glossary, so the page can be read without prior knowledge of the jargon.'},
+  {d:'2026-08-28',t:'Block-producer wording corrected',
+   w:'The guide asserted that block producers are deliberately hidden. That claims an intent nobody can verify; it now simply says the scoring uses published information, which is not the whole picture.'},
+  {d:'2026-08-28',t:'Positioning and attribution rewritten',
+   w:'Removed wording that implied this information is visible nowhere else, and moved the credit up front: the connection checks are run and published by BEACNpool (ABCDE), and this page is built on those results.'},
+  {d:'2026-08-28',t:'Neutral wording for scores and caveats',
+   w:'Stopped arguing on behalf of low-scoring pools and replaced it with a neutral statement - the lower the score, the more there is to check. A caveat repeated in four places was cut back to two.'},
+  {d:'2026-08-28',t:'Shared-infrastructure groups became openable',
+   w:'Counts such as KES in sync x29 can now be pressed to list those pools in the same table as the ranking, with a back button. Members outside the ranking are shown too, so the number on the badge always matches the rows.'},
+  {d:'2026-08-28',t:'Borrowed-relay check moved on chain',
+   w:'The upstream column for this had been dropped, which silently gave every pool full marks on the no-borrowing axis. Registered relays are public, so the page now checks them against the chain directly; the deduction returned and the top of the ranking changed. Raised by a reader.'},
+  {d:'2026-08-28',t:'Search no longer leaks into groups',
+   w:'Opening a group while a search term was active narrowed the group to that term, so the badge said one number and the table showed another.'},
+  {d:'2026-08-28',t:'Registration separated from ownership',
+   w:'A certificate can list any address, and the chain cannot verify who holds it. The guide now describes what was registered rather than what a pool owns, and the page states both limits: not every relay is registered, and a registered address is not guaranteed to belong to the pool. Raised by a reader.'}
+ ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
  dBenign:'Why this may still be normal: ',
@@ -627,6 +662,30 @@ ja:{
  grpUnranked:'ランキング対象外（直近のブロック生成なし、またはプローブ対象外）',
  grpHint:(n,ranked)=>'これを共有する'+n+'プールすべて'+(ranked<n?'（うち'+(n-ranked)+'件はランキング対象外）':'')+'。行をクリックすると詳細が開きます。',
  backToRanking:'\u2190 ランキングに戻る',
+ clTitle:'更新履歴',
+ clNote:'データそのものは毎日の自動更新で入れ替わるため、ここには載せていません。これはページ自体の履歴です（何を・なぜ変えたか）。',
+ changelog:[
+  {d:'2026-08-28',t:'公開',
+   w:'ブロック生成実績のある1,282プールの6軸ランキング。スコア分布図、シグナル六角形、日英切替、ABCDEデータからの毎日自動更新。'},
+  {d:'2026-08-28',t:'元データのスキーマ変化からビルドを保護',
+   w:'依存する列が元データのCSVから消えた場合、間違った採点のまま公開せず、ビルドを失敗させるようにした。当時、元データのスキーマは変化の最中だった。'},
+  {d:'2026-08-28',t:'ホルダー向け解説パネルを追加',
+   w:'各シグナルの意味を平易な言葉で説明するパネルと用語集。専門用語を知らなくても読めるように。'},
+  {d:'2026-08-28',t:'ブロック生成ノードの記述を修正',
+   w:'「わざと隠して運用される」という意図の断定をやめた。検証できない意図ではなく、「公開されている情報だけを元にしており、それが全体像ではない」という事実だけを書くようにした。'},
+  {d:'2026-08-28',t:'立ち位置と出典の書き直し',
+   w:'「他では見られない」と読める表現を撤回し、出典を冒頭に移した。接続確認は BEACNpool さん（ABCDE）が実施・公開しているもので、このページはその結果の上に作られている。'},
+  {d:'2026-08-28',t:'スコア説明と注意書きの中立化',
+   w:'低スコアのプールを弁護する言い回しをやめ、「点数が低いほど確認したい項目が多い」という中立な一文にした。4か所で繰り返していた注意書きも2か所に整理。'},
+  {d:'2026-08-28',t:'共有インフラのグループを開けるように',
+   w:'「KES同期 ×29」のような数字を押すと、その全プールをランキングと同じ表で表示し、戻るボタンを付けた。ランキング対象外のプールも理由付きで並べ、バッジの数字と行数が常に一致するようにした。'},
+  {d:'2026-08-28',t:'借用リレーの判定をチェーン直接照合に変更',
+   w:'元データから判定用の列が消え、「非借用」の軸が全プール満点で素通りになっていた。登録リレーは公開情報なので、チェーンから直接照合する方式に変更。減点が復活し、上位の順位が変わった。利用者の指摘がきっかけ。'},
+  {d:'2026-08-28',t:'検索とグループ表示の競合を修正',
+   w:'検索語が残ったままグループを開くと、その語でグループが絞られてしまい、バッジの数字と表の行数が合わなかった。'},
+  {d:'2026-08-28',t:'「登録」と「所有」を区別',
+   w:'証明書には任意のアドレスを書くことができ、その持ち主をチェーン上で確かめる方法はない。解説を「何を登録しているか」の記述に統一し、注意書きに2つの限界（登録されないリレーがある／登録されたアドレスが本人のものとは限らない）を明記した。利用者の指摘がきっかけ。'}
+ ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
  dBenign:'正常である可能性：',
@@ -1155,6 +1214,10 @@ function applyLang(){
   document.querySelector('#refbody').innerHTML=t.risks.map(r=>
     '<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('');
   document.querySelector('#methodbody').innerHTML=t.method;
+  document.querySelector('#clbody').innerHTML=
+    '<p class="context" style="margin:0 0 12px">'+esc(t.clNote)+'</p><ul class="cl">'+
+    t.changelog.map(e=>'<li><span class="d">'+esc(e.d)+'</span><b>'+esc(e.t)+'</b><p>'+esc(e.w)+'</p></li>').join('')+
+    '</ul>';
 
   document.querySelector('#backrank').textContent=t.backToRanking;
   drawCurve();drawHex();syncChips();render();renderGuide();
