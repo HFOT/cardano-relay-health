@@ -44,6 +44,12 @@ jobs:
         shell: powershell
         run: ./tools/check-schema.ps1 -SrcDir data
 
+      # Upstream dropped registers_foreign_infrastructure, so this axis is
+      # checked against the chain directly. Koios is public and needs no key.
+      - name: Detect borrowed bootstrap relays
+        shell: powershell
+        run: ./tools/fetch-foreign-infra.ps1 -OutDir data
+
       - name: Generate page
         shell: powershell
         run: |
