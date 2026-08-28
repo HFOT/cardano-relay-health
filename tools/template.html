@@ -481,7 +481,7 @@ en:{
     ['what','The result of actually connecting, from outside, to the <b>relays</b> each pool publishes - the doors through which other nodes reach it.'],
     ['holder','When picking where to delegate, anyone can see fees and past performance. How a pool is <b>connected to the network</b> is normally invisible. This page lines up just that part, on one ruler, for every pool.'],
     ['chain','Relays are the <b>routes themselves</b> for carrying blocks and transactions between nodes. Thin or lopsided routing is generally thought to affect how fast things propagate and how well the network absorbs failures.'],
-    ['note','<b>The most important caveat.</b> The node that actually produces blocks is deliberately kept invisible from outside, for security. So what you see here is <b>only the public-facing part</b>. It does not directly measure how good a pool is, or what you will earn.']]},
+    ['note','<b>The most important caveat.</b> What a pool registers on chain is relay addresses; where the block-producing node sits is not part of that registration. Keeping that node unreachable from the public internet is generally described as good practice, but setups vary between operators and cannot be checked from outside. Either way, what you see here is <b>only the published part</b>. It does not directly measure how good a pool is, or what you will earn.']]},
    {k:'score',label:'Reading the score',s:[
     ['what','Every pool starts at 100. Where a signal worth noting turns up, the pool does not earn those points - effectively a deduction.'],
     ['holder','<b>A low score does not mean a bad pool.</b> It means there is more you might want to check before delegating. A high score is not a safety certificate either - only that little stood out from the outside.'],
@@ -543,7 +543,7 @@ en:{
     ['note','<b>Heavily dependent on where it was measured from.</b> A pool far from this vantage point is not slow globally. That is why this axis is worth only 5 points.']]},
    {k:'terms',label:'Terms',terms:[
     ['Relay','A server a pool runs so other nodes can connect to it. It receives blocks and transactions and passes them on, like a post office. It is published so anyone can connect.'],
-    ['Block producer (BP)','The node that actually makes blocks. Because an attack on it would be costly, standard practice is to hide it so nothing can connect directly. That is why it cannot be observed from outside.'],
+    ['Block producer (BP)','The node that actually makes blocks. On-chain registration covers relay addresses, not where this node sits. Keeping it unreachable from outside is generally described as good practice, though setups vary between operators and cannot be checked from here.'],
     ['Tip','The newest block on the chain. At tip means a node has caught up to it.'],
     ['Endpoint','A relay address: a domain name or IP, plus a port number, registered on chain by the pool.'],
     ['Host','An individual server reached by resolving an endpoint name. One name can expand to several hosts, which is why reachable hosts can outnumber registered entries.'],
@@ -679,7 +679,7 @@ ja:{
     ['what','各プールが公開している<b>リレー</b>（外部のノードと繋がるための窓口）を、外から実際に接続して確かめた結果です。'],
     ['holder','委任先を選ぶとき、手数料や過去の実績は誰でも見られます。でも「そのプールがネットワークにどう繋がっているか」は普段まったく見えません。ここはその部分だけを、全プール同じ物差しで並べたものです。'],
     ['chain','リレーは、ブロックやトランザクションを他のノードへ運ぶ<b>経路そのもの</b>です。経路が細かったり偏っていたりすると、ネットワーク全体の伝播の速さや、障害への強さに影響しうると考えられています。'],
-    ['note','<b>いちばん大事な前提です。</b>ブロックを実際に作るノード（ブロック生成ノード）は、セキュリティ上わざと外から見えないように運用されます。つまりここで見えているのは<b>公開されている部分だけ</b>で、プールの実力や報酬を直接測るものではありません。']]},
+    ['note','<b>いちばん大事な前提です。</b>チェーン上に登録されるのはリレーのアドレスで、ブロックを実際に作るノードの所在は登録項目に含まれません。安全のためそのノードを外部から直接繋げない構成にする、という運用が一般的とされていますが、実際の構成は運営者によって異なりますし、外からは確かめられません。いずれにせよ、ここで見えているのは<b>公開されている部分だけ</b>です。プールの実力や報酬を直接測るものではありません。']]},
    {k:'score',label:'点数の読み方',s:[
     ['what','全プールを100点から始めて、気になるシグナルが見つかった項目で加点を得られない＝実質的な減点、という形で並べています。'],
     ['holder','<b>点数が低い＝悪いプール、ではありません。</b>「委任する前に、追加で確認したいことが多いプール」という意味です。逆に高得点も「安全の証明」ではなく、外から見える範囲では気になる点が少なかった、というだけです。'],
@@ -741,7 +741,7 @@ ja:{
     ['note','<b>観測地点に強く依存します。</b>ここから遠いプールが、世界的に遅いわけではありません。この項目の配点を5点と低く抑えているのはそのためです。']]},
    {k:'terms',label:'用語',terms:[
     ['リレー (relay)','プールが外部のノードと繋がるための中継サーバー。ブロックやトランザクションを受け取って他へ渡す、郵便局のような役割。誰でも接続できるよう公開されている。'],
-    ['ブロック生成ノード (BP)','実際にブロックを作る本体。攻撃されると被害が大きいので、外から直接繋げないように隠して運用するのが標準。だから外部からは観測できない。'],
+    ['ブロック生成ノード (BP)','実際にブロックを作るノード。チェーン上の登録項目はリレーのアドレスであって、このノードの所在は登録されない。安全のため外部から直接繋げない構成にする運用が一般的とされているが、構成は運営者によって異なり、外からは確認できない。'],
     ['Tip（チェーンの先端）','ブロックチェーンのいちばん新しいブロックのこと。「Tip同期」は、そのノードが最新まで追いついている状態。'],
     ['endpoint（エンドポイント）','リレーの住所。ドメイン名かIPアドレスと、ポート番号の組み合わせ。プールがチェーン上に登録する。'],
     ['ホスト','endpointの名前を実際に引いた結果たどり着く、個々のサーバー。1つの名前が複数のホストに展開されることがあるため、到達ホスト数が登録数より多くなることがある。'],
