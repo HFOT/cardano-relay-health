@@ -46,7 +46,7 @@ stake concentration. These sweep ordinary users and unrelated pools into the sam
 
 ## Data sources
 
-Derived from the public [BEACNpool / ABCDE](https://beacnpool.github.io/abcde/) relay dataset:
+Derived from the public [BEACNpool / ABCDE](https://github.com/BEACNpool/ABCDE) relay dataset:
 
 - `relay_pool_health.csv`
 - `relay_shared_hosts.csv`
