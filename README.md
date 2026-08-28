@@ -52,14 +52,31 @@ Derived from the public [BEACNpool / ABCDE](https://beacnpool.github.io/abcde/) 
 - `relay_shared_hosts.csv`
 - `pool_operator_kes_members.csv`
 
-The source CSVs are not redistributed here — see the ABCDE project for the raw data.
+The source CSVs are not redistributed here; they are fetched at build time. ABCDE is MIT licensed.
+
+## Automatic updates
+
+A GitHub Actions workflow ([`.github/workflows/update.yml`](.github/workflows/update.yml)) runs
+daily at 05:17 UTC, and on demand via *Actions → Rebuild ranking → Run workflow*. It:
+
+1. fetches the three CSVs from `BEACNpool/ABCDE@main:data/small/`,
+2. regenerates `index.html`,
+3. commits **only when the output actually changed**.
+
+Two sanity checks guard against publishing a broken page: a fetched CSV under 1 KB and a generated
+page under 200 KB both fail the run rather than committing. GitHub Pages serves `index.html` from
+`main`, so a successful commit is the deploy.
+
+Nothing beyond the three public CSVs is needed — pool status (healthy / partial / behind tip /
+no response) is derived from the probe counts, which was verified to reproduce the original
+observation log for all 1,282 pools.
 
 ## Rebuilding
 
 `index.html` is generated, not hand-edited. Put the three CSVs next to the script and run:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/generate-ranking.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/generate-ranking.ps1 -SrcDir data -Template tools/template.html -OutFile index.html
 ```
 
 - `tools/template.html` holds all markup, styling and the i18n dictionary. It is the single source
