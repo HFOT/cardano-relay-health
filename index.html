@@ -478,8 +478,8 @@ en:{
   sec:{what:'What is measured',holder:'What it means for you',chain:'Possible effect on the network',low:'When this is low, generally',note:'But note'},
   topics:[
    {k:'why',label:'Why look at this',s:[
-    ['what','The result of actually connecting, from outside, to the <b>relays</b> each pool publishes - the doors through which other nodes reach it.'],
-    ['holder','A wallet or explorer will show you fees, saturation and recent blocks. Relay condition can be looked up too, but it is easy to miss unless you go looking for it. This page just lines that up on one ruler for every pool - <b>one more angle</b> to weigh alongside what you already check.'],
+    ['what','A re-presentation of data that is already public. The connection results for the relays each pool publishes come from the observations BEACNpool releases in ABCDE.'],
+    ['holder','A wallet or explorer will show you fees, saturation and recent blocks. This page just adds a little about relays on top of that - <b>one more angle</b> to weigh alongside what you already check.'],
     ['chain','Relays are the <b>routes themselves</b> for carrying blocks and transactions between nodes. Thin or lopsided routing is generally thought to affect how fast things propagate and how well the network absorbs failures.'],
     ['note','This scoring uses only information that is published. Not everything about a pool is public, so the score does not represent the whole picture.']]},
    {k:'score',label:'Reading the score',s:[
@@ -547,7 +547,7 @@ en:{
     ['Tip','The newest block on the chain. At tip means a node has caught up to it.'],
     ['Endpoint','A relay address: a domain name or IP, plus a port number, registered on chain by the pool.'],
     ['Host','An individual server reached by resolving an endpoint name. One name can expand to several hosts, which is why reachable hosts can outnumber registered entries.'],
-    ['Probe','Actually attempting a connection to see whether an answer comes back. Reachable, At tip and RTT on this page all come from probing.'],
+    ['Probe','Actually attempting a connection to see whether an answer comes back. Reachable, At tip and RTT here all come from that, as observed and published by ABCDE.'],
     ['RTT','Round Trip Time - how long a connection takes to answer, in milliseconds.'],
     ['KES','The key used to sign blocks. It is required to be rotated periodically for safety.'],
     ['Epoch','The Cardano unit of time: five days. Last 30 epochs is about 150 days.'],
@@ -676,8 +676,8 @@ ja:{
   sec:{what:'何を見ているか',holder:'委任する側にとって',chain:'ネットワークへの影響（可能性）',low:'この項目が低いとき、一般には',note:'ただし'},
   topics:[
    {k:'why',label:'なぜ見るのか',s:[
-    ['what','各プールが公開している<b>リレー</b>（外部のノードと繋がるための窓口）を、外から実際に接続して確かめた結果です。'],
-    ['holder','ウォレットやエクスプローラーでは、手数料・飽和度・直近のブロック数あたりまでは見られます。リレーの状態も調べれば分かりますが、意識して探さないとなかなか気づかない部分です。ここはそれを全プール同じ物差しで並べただけのものです。委任先を考えるときに<b>追加で見る視点</b>のひとつとしてどうぞ。'],
+    ['what','公開されているデータを並べ直したものです。リレー（外部のノードと繋がるための窓口）への接続結果は、BEACNpool が ABCDE で公開している観測データを使っています。'],
+    ['holder','ウォレットやエクスプローラーでは、手数料・飽和度・直近のブロック数あたりまでは見られます。ここは、そこにリレーまわりの情報を少し足しただけのものです。委任先を考えるときに<b>追加で見る視点</b>のひとつとしてどうぞ。'],
     ['chain','リレーは、ブロックやトランザクションを他のノードへ運ぶ<b>経路そのもの</b>です。経路が細かったり偏っていたりすると、ネットワーク全体の伝播の速さや、障害への強さに影響しうると考えられています。'],
     ['note','この評価は公開されている情報だけを元にしています。プールの構成のすべてが公開されているわけではないので、点数がプールの全体像を表すものではありません。']]},
    {k:'score',label:'点数の読み方',s:[
@@ -745,7 +745,7 @@ ja:{
     ['Tip（チェーンの先端）','ブロックチェーンのいちばん新しいブロックのこと。「Tip同期」は、そのノードが最新まで追いついている状態。'],
     ['endpoint（エンドポイント）','リレーの住所。ドメイン名かIPアドレスと、ポート番号の組み合わせ。プールがチェーン上に登録する。'],
     ['ホスト','endpointの名前を実際に引いた結果たどり着く、個々のサーバー。1つの名前が複数のホストに展開されることがあるため、到達ホスト数が登録数より多くなることがある。'],
-    ['probe（プローブ）','実際に接続を試して、応答が返るか確かめる行為。このページの「到達」「Tip同期」「RTT」はすべてプローブの結果。'],
+    ['probe（プローブ）','実際に接続を試して、応答が返るか確かめる行為。このページの「到達」「Tip同期」「RTT」はその結果で、観測を行っているのはABCDE。'],
     ['RTT','Round Trip Time。接続してから応答が返るまでの往復時間。単位はミリ秒。'],
     ['KES','ブロックに署名するための鍵。安全のため定期的に更新（ローテーション）することが決められている。'],
     ['epoch（エポック）','Cardanoの時間の単位。1エポックは5日間。「直近30エポック」は約150日。'],
