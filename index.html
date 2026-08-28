@@ -199,6 +199,49 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
 #reftable td:first-child{color:var(--ink);font-weight:600}
 #reftable td:nth-child(3){color:var(--p);font-weight:700;text-align:right;white-space:nowrap}
 
+
+/* ---------- holder guide ---------- */
+.gfab{position:fixed;right:20px;bottom:20px;z-index:50;display:inline-flex;align-items:center;gap:9px;
+  background:linear-gradient(96deg,rgba(139,92,255,.92),rgba(34,211,238,.78));border:1px solid rgba(180,150,255,.6);
+  color:#fff;border-radius:999px;padding:12px 18px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
+  box-shadow:0 10px 32px -8px rgba(139,92,255,.85);transition:.18s}
+.gfab:hover{transform:translateY(-2px);filter:brightness(1.14)}
+.gfab i{width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 10px #fff;display:block;flex:none}
+.gpanel{position:fixed;right:20px;bottom:20px;z-index:51;width:min(470px,calc(100vw - 40px));
+  max-height:min(80vh,760px);display:none;flex-direction:column;border-radius:20px;overflow:hidden;
+  background:rgba(11,7,36,.94);border:1px solid var(--stroke2);
+  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  box-shadow:0 30px 80px -18px rgba(0,0,0,.88)}
+.gpanel.on{display:flex}
+.ghead{position:relative;padding:16px 46px 13px 18px;border-bottom:1px solid var(--stroke);flex:none}
+.ghead h4{margin:0;font-size:15px;letter-spacing:-.01em;color:var(--ink)}
+.ghead p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
+.gclose{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:1px solid var(--stroke2);
+  color:var(--muted);border-radius:9px;width:27px;height:27px;cursor:pointer;font:inherit;font-size:13px;line-height:1}
+.gclose:hover{color:#fff;background:rgba(255,255,255,.15)}
+.gtabs{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--stroke);flex:none}
+.gtab{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--muted);border-radius:999px;
+  padding:5px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;transition:.15s}
+.gtab:hover{color:var(--ink);border-color:rgba(255,255,255,.32)}
+.gtab[aria-pressed="true"]{background:linear-gradient(96deg,rgba(139,92,255,.42),rgba(34,211,238,.3));
+  border-color:rgba(160,120,255,.8);color:#fff}
+.gbody{padding:16px 18px 20px;overflow-y:auto;flex:1}
+.gsec{margin:0 0 15px}
+.gsec:last-child{margin-bottom:0}
+.gsec h5{margin:0 0 5px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--v2)}
+.gsec.note h5{color:var(--a)}
+.gsec p{margin:0;font-size:13px;line-height:1.75;color:#d5d7f2}
+.gsec.note p{color:var(--muted)}
+.gsec b{color:#fff;font-weight:700}
+.gterms{margin:0;padding:0;list-style:none}
+.gterms li{padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;line-height:1.7}
+.gterms li:last-child{border-bottom:0;padding-bottom:0}
+.gterms dfn{display:block;font-style:normal;font-weight:700;color:#a5f3ea;margin-bottom:3px}
+.gterms span{color:var(--muted)}
+@media(max-width:640px){
+  .gpanel{right:10px;left:10px;bottom:10px;width:auto;max-height:84vh}
+  .gfab{right:12px;bottom:12px;padding:11px 15px;font-size:12.5px}
+}
 @media(max-width:1080px){
   .charts{grid-template-columns:1fr}
   .dpad{grid-template-columns:200px minmax(0,1fr);gap:22px}
@@ -303,6 +346,17 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
 </details>
 
 <p class="foot" data-i18n="footer"></p>
+
+<button class="gfab" id="gfab"><i></i><span id="gfablabel"></span></button>
+<aside class="gpanel" id="gpanel" role="dialog" aria-label="guide">
+  <div class="ghead">
+    <h4 id="gtitle"></h4>
+    <p id="gsub"></p>
+    <button class="gclose" id="gclose" aria-label="close">&#10005;</button>
+  </div>
+  <div class="gtabs" id="gtabs"></div>
+  <div class="gbody" id="gbody"></div>
+</aside>
 </main>
 
 <script>
@@ -417,6 +471,95 @@ en:{
  methodTitle:'Scoring method and caveats',
  method:'<p><b>Reachability & tip sync — 35 pts</b>: reachable/probed and at-tip/probed, 17.5 each.<br><b>Redundancy — 15 pts</b>: 3+ reachable hosts = 15, 2 = 11, 1 = 5.<br><b>Infrastructure & operational independence — 25 pts</b>: endpoint not shared 10, IP not shared 10, no synchronised KES cluster 5.<br><b>No borrowing — 10 pts</b>: awarded when no founding-entity bootstrap backbone is registered.<br><b>Registration continuity — 10 pts</b>: awarded when all relays were never removed in the past.<br><b>RTT — 5 pts</b>: ≤150 ms = 5, ≤300 = 4, ≤600 = 3, ≤1000 = 2, above that = 1.</p><p>Shared information is not proof that operators are the same, and RTT and connectivity results depend on the vantage point and the moment of measurement. Do not treat this ranking as the sole basis for a delegation decision.</p>',
  footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Generated 2026-08-28',
+ guide:{
+  fab:'Guide for holders',
+  title:'Guide for holders',
+  sub:'What this table actually measures, and what it may mean if you are delegating. Jargon is collected under the Terms tab.',
+  sec:{what:'What is measured',holder:'What it means for you',chain:'Possible effect on the network',low:'When this is low, generally',note:'But note'},
+  topics:[
+   {k:'why',label:'Why look at this',s:[
+    ['what','The result of actually connecting, from outside, to the <b>relays</b> each pool publishes - the doors through which other nodes reach it.'],
+    ['holder','When picking where to delegate, anyone can see fees and past performance. How a pool is <b>connected to the network</b> is normally invisible. This page lines up just that part, on one ruler, for every pool.'],
+    ['chain','Relays are the <b>routes themselves</b> for carrying blocks and transactions between nodes. Thin or lopsided routing is generally thought to affect how fast things propagate and how well the network absorbs failures.'],
+    ['note','<b>The most important caveat.</b> The node that actually produces blocks is deliberately kept invisible from outside, for security. So what you see here is <b>only the public-facing part</b>. It does not directly measure how good a pool is, or what you will earn.']]},
+   {k:'score',label:'Reading the score',s:[
+    ['what','Every pool starts at 100. Where a signal worth noting turns up, the pool does not earn those points - effectively a deduction.'],
+    ['holder','<b>A low score does not mean a bad pool.</b> It means there is more you might want to check before delegating. A high score is not a safety certificate either - only that little stood out from the outside.'],
+    ['low','The lower the score, the more it is worth reading how the operator describes their setup.'],
+    ['note','This is a snapshot, from one observation point, at one moment. Do not decide a delegation on the ranking alone.']]},
+   {k:'reach',label:'Partial reach',s:[
+    ['what','How many of the registered relays actually answered when contacted.'],
+    ['holder','Fewer doors are open to incoming nodes than the pool has registered.'],
+    ['chain','The fewer doors, the fewer routing options run through that pool. Across the whole network this tends to thin out the spare capacity in the routing mesh.'],
+    ['low','Generally it suggests the configuration and reality have drifted apart, or that some hosts are down or blocking.'],
+    ['note','A firewall, a connection-rate limit, a restart, or simply <b>being unreachable from this one vantage point</b> produces exactly the same result. It is not evidence that anything is down.']]},
+   {k:'tip',label:'Not at tip',s:[
+    ['what','Whether any host answers but has not caught up to the newest block on the chain.'],
+    ['holder','A relay you can reach, but whose information is stale.'],
+    ['chain','A lagging relay is a low-quality peer for everyone else. As more of them appear, propagation across the network tends to slow.'],
+    ['low','Generally it suggests a node still syncing, freshly restarted, or under load.'],
+    ['note','It may have been behind only for the instant it was measured. A few seconds can flip this one.']]},
+   {k:'redun',label:'Low redundancy',s:[
+    ['what','The <b>number</b> of relay hosts that actually answered. Three or more scores full marks, two scores 11, one scores 5.'],
+    ['holder','How many public connection points this pool has.'],
+    ['chain','With only one, losing it makes the pool hard for the network to see. From the pool side, a block it produces becomes harder to spread.'],
+    ['low','Generally it suggests a small setup, a cost-conscious configuration, or private relays kept separately.'],
+    ['note','<b>Private relays and internal topology cannot be observed from outside.</b> The real setup may have far more slack. About 82% of the 1,282 pools here fall into this category, so it is not unusual on Cardano.']]},
+   {k:'ep',label:'Shared endpoint',s:[
+    ['what','The pool registers exactly the same address string as another pool.'],
+    ['holder','Pools that look separate are sharing one door.'],
+    ['chain','If something happens to that door, several pools can be affected at once. Things look spread out, while <b>the actual weak point may be shared</b>.'],
+    ['low','Generally it suggests a relay hosting service, one operator running several pools, or a joint operation.'],
+    ['note','Most often it is simply a third-party service, and it is <b>not proof of common ownership</b>.']]},
+   {k:'ip',label:'Shared IP',s:[
+    ['what','The registered names differ, but they resolve to the same server - the same IP address and port.'],
+    ['holder','Different names, same actual place.'],
+    ['chain','Like a shared endpoint, this is a common point where an outage can spread at once. It is one reason apparent decentralisation and real decentralisation can diverge.'],
+    ['low','Generally it suggests shared hosting, NAT, a load-balanced setup, or one operator.'],
+    ['note','Ordinary cloud and NAT configurations produce this naturally. On its own it settles nothing.']]},
+   {k:'kes',label:'KES in sync',s:[
+    ['what','The timing at which the block-signing key (KES) is rotated lines up with other pools.'],
+    ['holder','A <b>correlation</b> showing the operational routine matches other pools.'],
+    ['chain','Even where stake looks spread across many pools, the number of parties actually running them may be smaller. That bears on how genuinely distributed the stake is.'],
+    ['low','Generally it suggests the same automation, the same administrator, or the same written procedure.'],
+    ['note','<b>A correlation, not proof.</b> Unrelated operators following the same guide or tool can line up by coincidence.']]},
+   {k:'foreign',label:'Borrowed infra',s:[
+    ['what','The pool registers a shared bootstrap relay published by a Cardano founding entity as if it were its own relay.'],
+    ['holder','The public relay belonging to the pool itself is not visible; it is leaning on equipment run by another organisation.'],
+    ['chain','It puts load on shared infrastructure without contributing routing of its own, and it depends on that infrastructure staying available.'],
+    ['low','Generally it suggests a misconfiguration, or that the operator has not set up their own relay yet.'],
+    ['note','It may also be deliberate. Asking the operator about the registration is the reliable way to know.']]},
+   {k:'removed',label:'All relays removed',s:[
+    ['what','A past registration record listed no relays at all.'],
+    ['holder','There was a period when no connection point could be found on chain.'],
+    ['chain','During such a period the pool may have been hard to reach from outside even while running.'],
+    ['low','Generally it suggests a server migration, a response to an attack, or brief maintenance.'],
+    ['note','<b>This is history, not the current state.</b> The pool may be running perfectly well now.']]},
+   {k:'rtt',label:'RTT',s:[
+    ['what','The shortest round-trip time between connecting and getting an answer back.'],
+    ['holder','A rough measure of network distance from the observation point to that relay.'],
+    ['chain','Slow propagation means a block takes longer to reach other nodes. Where several blocks compete for the same moment, that is generally thought to be a disadvantage.'],
+    ['low','Generally it suggests geographic distance or a congested route.'],
+    ['note','<b>Heavily dependent on where it was measured from.</b> A pool far from this vantage point is not slow globally. That is why this axis is worth only 5 points.']]},
+   {k:'terms',label:'Terms',terms:[
+    ['Relay','A server a pool runs so other nodes can connect to it. It receives blocks and transactions and passes them on, like a post office. It is published so anyone can connect.'],
+    ['Block producer (BP)','The node that actually makes blocks. Because an attack on it would be costly, standard practice is to hide it so nothing can connect directly. That is why it cannot be observed from outside.'],
+    ['Tip','The newest block on the chain. At tip means a node has caught up to it.'],
+    ['Endpoint','A relay address: a domain name or IP, plus a port number, registered on chain by the pool.'],
+    ['Host','An individual server reached by resolving an endpoint name. One name can expand to several hosts, which is why reachable hosts can outnumber registered entries.'],
+    ['Probe','Actually attempting a connection to see whether an answer comes back. Reachable, At tip and RTT on this page all come from probing.'],
+    ['RTT','Round Trip Time - how long a connection takes to answer, in milliseconds.'],
+    ['KES','The key used to sign blocks. It is required to be rotated periodically for safety.'],
+    ['Epoch','The Cardano unit of time: five days. Last 30 epochs is about 150 days.'],
+    ['Stake / delegators','How much ADA is delegated to the pool, and how many people delegate it.'],
+    ['Pool ID','The unique identifier for a pool, beginning pool1... A ticker can be changed; the pool ID cannot.'],
+    ['SRV','A DNS mechanism for finding several servers from one name. Because of it, a single registered entry can expand into multiple real hosts.']]},
+   {k:'use',label:'Using this well',s:[
+    ['holder','A low score is not avoid, it is more to check. A high score does not mean better rewards either - relay health and what you actually earn are separate questions.'],
+    ['chain','What this table covers is <b>how the network is wired together</b>: propagation, resilience, and the gap between apparent and actual decentralisation.'],
+    ['note','If something here concerns you, <b>asking the operator directly is the most reliable step</b>. This page is one vantage point at one moment, and cannot be the sole basis for a delegation decision.']]}
+  ]
+ },
  unitPts:'', scoreOf:'/100'
 },
 ja:{
@@ -526,6 +669,95 @@ ja:{
  methodTitle:'採点方法と注意点',
  method:'<p><b>到達性・Tip同期 35点</b>：reachable/probed と at-tip/probed を各17.5点。<br><b>冗長性 15点</b>：到達ホスト3以上=15、2=11、1=5。<br><b>インフラ・運用独立性 25点</b>：endpoint非共有10、IP非共有10、KES同期クラスターなし5。<br><b>非借用 10点</b>：founding-entity bootstrap backboneを登録していなければ加点。<br><b>登録継続性 10点</b>：過去に全relayを削除した履歴がなければ加点。<br><b>RTT 5点</b>：≤150ms=5、≤300=4、≤600=3、≤1000=2、それ以上=1。</p><p>共有情報は運営者同一の証明ではなく、RTTと疎通結果は観測地点・時刻に依存します。順位は委任判断の唯一の根拠にはしないでください。</p>',
  footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Generated 2026-08-28',
+ guide:{
+  fab:'ホルダーへの簡単解説',
+  title:'ホルダーへの簡単解説',
+  sub:'この表が何を見ていて、委任する側にとって何を意味しうるのか。専門用語は「用語」タブにまとめてあります。',
+  sec:{what:'何を見ているか',holder:'委任する側にとって',chain:'ネットワークへの影響（可能性）',low:'この項目が低いとき、一般には',note:'ただし'},
+  topics:[
+   {k:'why',label:'なぜ見るのか',s:[
+    ['what','各プールが公開している<b>リレー</b>（外部のノードと繋がるための窓口）を、外から実際に接続して確かめた結果です。'],
+    ['holder','委任先を選ぶとき、手数料や過去の実績は誰でも見られます。でも「そのプールがネットワークにどう繋がっているか」は普段まったく見えません。ここはその部分だけを、全プール同じ物差しで並べたものです。'],
+    ['chain','リレーは、ブロックやトランザクションを他のノードへ運ぶ<b>経路そのもの</b>です。経路が細かったり偏っていたりすると、ネットワーク全体の伝播の速さや、障害への強さに影響しうると考えられています。'],
+    ['note','<b>いちばん大事な前提です。</b>ブロックを実際に作るノード（ブロック生成ノード）は、セキュリティ上わざと外から見えないように運用されます。つまりここで見えているのは<b>公開されている部分だけ</b>で、プールの実力や報酬を直接測るものではありません。']]},
+   {k:'score',label:'点数の読み方',s:[
+    ['what','全プールを100点から始めて、気になるシグナルが見つかった項目で加点を得られない＝実質的な減点、という形で並べています。'],
+    ['holder','<b>点数が低い＝悪いプール、ではありません。</b>「委任する前に、追加で確認したいことが多いプール」という意味です。逆に高得点も「安全の証明」ではなく、外から見える範囲では気になる点が少なかった、というだけです。'],
+    ['low','低いプールほど、運営者の説明や実際の構成を確認する価値がある、という読み方が近いです。'],
+    ['note','1つの観測地点から、1つの時点を見たスナップショットです。順位だけで委任を決めないでください。']]},
+   {k:'reach',label:'到達不足',s:[
+    ['what','登録されているリレーのうち、実際に応答が返ってきたホストの割合です。'],
+    ['holder','外部のノードが繋ぎに行ける窓口が、登録されている数より少ない状態です。'],
+    ['chain','繋がれる窓口が少ないほど、そのプールを経由する経路の選択肢が減る可能性があります。ネットワーク全体で見れば、経路の余裕が薄くなる方向に働きうると考えられます。'],
+    ['low','一般的には、設定と実態がずれている、あるいは一部のホストが停止・遮断されている状態が考えられます。'],
+    ['note','ファイアウォール、接続数制限、再起動中、あるいは<b>この観測地点からだけ届かない</b>、という理由でも同じ結果になります。停止していることの証拠ではありません。']]},
+   {k:'tip',label:'Tip未同期',s:[
+    ['what','応答はするけれど、チェーンの先端（最新のブロック）に追いついていないホストがあるか、です。'],
+    ['holder','繋がるけれど情報が古いリレー、という状態です。'],
+    ['chain','遅れているリレーは、他のノードから見ると質の低い接続先になります。こうしたリレーが増えると、ネットワーク全体の伝播が遅くなる方向に働きうると考えられます。'],
+    ['low','一般的には、同期の途中、再起動した直後、負荷が高い、といった状態が考えられます。'],
+    ['note','測定した一瞬だけ遅れていた可能性があります。数秒の差で判定が変わる、繊細な項目です。']]},
+   {k:'redun',label:'冗長性不足',s:[
+    ['what','実際に応答したリレーの<b>台数</b>です。3台以上で満点、2台で11点、1台で5点としています。'],
+    ['holder','このプールの公開された接続点が、何本あるかです。'],
+    ['chain','1本しかない場合、そこが落ちるとそのプールはネットワークから見えにくくなります。プール側から見れば、ブロックを作っても他へ広めにくくなる可能性があります。'],
+    ['low','一般的には、小規模な運用、コストを抑えた構成、あるいは公開していないリレーを別に持っている、といった形が考えられます。'],
+    ['note','<b>非公開のリレーや内部の構成は、外からは観測できません。</b>実際にはもっと余裕がある場合があります。今回1,282プール中およそ82%がこの項目に該当していて、Cardanoでは珍しい構成ではありません。']]},
+   {k:'ep',label:'endpoint共有',s:[
+    ['what','別のプールと、まったく同じ登録アドレスの文字列を使っている状態です。'],
+    ['holder','別々に見えるプールが、同じ入口を共有しています。'],
+    ['chain','その入口に問題が起きると、複数のプールが同時に影響を受ける可能性があります。分散しているように見えて、<b>実際の弱点は共通かもしれない</b>、という話です。'],
+    ['low','一般的には、リレーの代行サービスを使っている、同じ運営者が複数プールを持っている、共同で運用している、などが考えられます。'],
+    ['note','第三者のサービスを使っているだけの可能性が高く、<b>所有者が同じであることの証明にはなりません。</b>']]},
+   {k:'ip',label:'IP共有',s:[
+    ['what','登録されている名前は違うのに、たどり着く先が同じサーバー（同じIPアドレスとポート）になっている状態です。'],
+    ['holder','名前が別でも、実体は同じ場所です。'],
+    ['chain','endpoint共有と同じく、障害や停止が同時に波及しうる共通点になります。見かけの分散と実際の分散がずれる要因のひとつです。'],
+    ['low','一般的には、共有ホスティング、NAT、負荷分散の構成、あるいは同一の運営が考えられます。'],
+    ['note','クラウドやNATの普通の構成でも自然にこうなります。これ単独では判断材料になりません。']]},
+   {k:'kes',label:'KES同期',s:[
+    ['what','ブロックに署名するための鍵（KES）を更新するタイミングが、他のプールと揃っている状態です。'],
+    ['holder','運用の手順やタイミングが、他のプールと一致しているという<b>相関</b>です。'],
+    ['chain','見かけ上は多くのプールに分かれていても、実際に管理している主体はもっと少ない可能性を示唆します。ステークがどれだけ本当に分散しているか、という論点に関わりえます。'],
+    ['low','一般的には、同じ自動化の仕組み、同じ管理者、同じ運用手順を使っていることが考えられます。'],
+    ['note','<b>相関であって証明ではありません。</b>同じ手順書や同じツールを使っていれば、無関係な運営者どうしでも偶然揃うことがあります。']]},
+   {k:'foreign',label:'infra借用',s:[
+    ['what','Cardanoの創設組織が公開している共用リレーを、自分のプールのリレーとして登録している状態です。'],
+    ['holder','そのプール自身の公開リレーが見えず、他組織の設備に頼っている形です。'],
+    ['chain','自分では経路を提供せず、共用の設備に負荷をかける形になります。その設備が制限されたり止まったりすると、影響を受ける可能性があります。'],
+    ['low','一般的には、設定のミスか、まだ自前のリレーを用意できていない状態が考えられます。'],
+    ['note','意図的な構成の可能性もあります。登録内容について運営者に確認するのが確実です。']]},
+   {k:'removed',label:'全relay削除歴',s:[
+    ['what','過去の登録記録の中に、リレーが1つも登録されていなかった時期があることです。'],
+    ['holder','チェーン上から接続先を見つけられない期間があった、という履歴です。'],
+    ['chain','見つけられない期間は、そのプールが動いていても外部から繋ぎにくい状態だった可能性があります。'],
+    ['low','一般的には、サーバーの移行作業、攻撃への対処、短期の保守などが考えられます。'],
+    ['note','<b>過去の履歴であって、現在の状態とは別です。</b>今は問題なく動いていることもあります。']]},
+   {k:'rtt',label:'RTT',s:[
+    ['what','接続してから応答が返るまでの、最短の往復時間です。'],
+    ['holder','観測地点からそのリレーまでの、ネットワーク的な距離の目安です。'],
+    ['chain','伝播が遅いと、作ったブロックが他のノードに届くまでに時間がかかる可能性があります。同じ時間帯に複数のブロックが競合したとき、不利に働きうると考えられています。'],
+    ['low','一般的には、地理的に遠い、経路が混雑している、といった状態が考えられます。'],
+    ['note','<b>観測地点に強く依存します。</b>ここから遠いプールが、世界的に遅いわけではありません。この項目の配点を5点と低く抑えているのはそのためです。']]},
+   {k:'terms',label:'用語',terms:[
+    ['リレー (relay)','プールが外部のノードと繋がるための中継サーバー。ブロックやトランザクションを受け取って他へ渡す、郵便局のような役割。誰でも接続できるよう公開されている。'],
+    ['ブロック生成ノード (BP)','実際にブロックを作る本体。攻撃されると被害が大きいので、外から直接繋げないように隠して運用するのが標準。だから外部からは観測できない。'],
+    ['Tip（チェーンの先端）','ブロックチェーンのいちばん新しいブロックのこと。「Tip同期」は、そのノードが最新まで追いついている状態。'],
+    ['endpoint（エンドポイント）','リレーの住所。ドメイン名かIPアドレスと、ポート番号の組み合わせ。プールがチェーン上に登録する。'],
+    ['ホスト','endpointの名前を実際に引いた結果たどり着く、個々のサーバー。1つの名前が複数のホストに展開されることがあるため、到達ホスト数が登録数より多くなることがある。'],
+    ['probe（プローブ）','実際に接続を試して、応答が返るか確かめる行為。このページの「到達」「Tip同期」「RTT」はすべてプローブの結果。'],
+    ['RTT','Round Trip Time。接続してから応答が返るまでの往復時間。単位はミリ秒。'],
+    ['KES','ブロックに署名するための鍵。安全のため定期的に更新（ローテーション）することが決められている。'],
+    ['epoch（エポック）','Cardanoの時間の単位。1エポックは5日間。「直近30エポック」は約150日。'],
+    ['stake / delegator','そのプールに委任されているADAの量と、委任している人の数。'],
+    ['Pool ID','プールを一意に識別する文字列。pool1... で始まる。Tickerは変更できるがPool IDは変わらない。'],
+    ['SRV','1つの名前から複数のサーバーを自動的に見つけるDNSの仕組み。これで展開されるため、登録が1件でも実際のホストは複数になりうる。']]},
+   {k:'use',label:'使うときの注意',s:[
+    ['holder','低いスコアは「避けるべき」ではなく「確認したいことが多い」です。高いスコアも「報酬が良い」を意味しません。リレーの健全性と、実際にもらえる報酬は別の話です。'],
+    ['chain','この表が扱っているのは、ネットワークの<b>つながり方</b>です。伝播や耐障害性、そして「見かけの分散と実際の分散のずれ」を考えるための材料になります。'],
+    ['note','気になる項目があれば、<b>運営者に直接聞くのがいちばん確実です。</b>このページは1つの観測地点から1つの時点を見た結果にすぎず、委任判断の唯一の根拠にはできません。']]}
+  ]
+ },
  unitPts:'pts', scoreOf:'/100'
 }};
 
@@ -864,7 +1096,7 @@ function applyLang(){
     '<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('');
   document.querySelector('#methodbody').innerHTML=t.method;
 
-  drawCurve();drawHex();syncChips();render();
+  drawCurve();drawHex();syncChips();render();renderGuide();
   Array.prototype.forEach.call(langsw.children,b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));
 }
 
@@ -899,6 +1131,44 @@ langsw.addEventListener('click',e=>{
 q.addEventListener('input',render);
 limit.addEventListener('change',render);
 sortSel.addEventListener('change',render);
+
+/* ---------------- holder guide ---------------- */
+const gfab=document.querySelector('#gfab'),gpanel=document.querySelector('#gpanel'),
+      gtabs=document.querySelector('#gtabs'),gbody=document.querySelector('#gbody');
+let gtopic=0;
+
+function renderGuide(){
+  const g=T().guide;
+  document.querySelector('#gfablabel').textContent=g.fab;
+  document.querySelector('#gtitle').textContent=g.title;
+  document.querySelector('#gsub').textContent=g.sub;
+  if(gtopic>=g.topics.length)gtopic=0;
+  gtabs.innerHTML=g.topics.map((t,i)=>
+    '<button class="gtab" data-i="'+i+'" aria-pressed="'+(i===gtopic)+'">'+esc(t.label)+'</button>').join('');
+  const t=g.topics[gtopic];
+  gbody.innerHTML = t.terms
+    ? '<ul class="gterms">'+t.terms.map(x=>'<li><dfn>'+esc(x[0])+'</dfn><span>'+esc(x[1])+'</span></li>').join('')+'</ul>'
+    : t.s.map(sec=>'<div class="gsec'+(sec[0]==='note'?' note':'')+'">'+
+        '<h5>'+esc(g.sec[sec[0]])+'</h5><p>'+sec[1]+'</p></div>').join('');
+  gbody.scrollTop=0;
+}
+function openGuide(key){
+  const ts=T().guide.topics;
+  if(key){const i=ts.findIndex(t=>t.k===key); if(i>=0)gtopic=i;}
+  renderGuide();
+  gpanel.classList.add('on');
+  gfab.style.display='none';
+}
+function closeGuide(){gpanel.classList.remove('on');gfab.style.display='';}
+
+gfab.addEventListener('click',()=>openGuide());
+document.querySelector('#gclose').addEventListener('click',closeGuide);
+gtabs.addEventListener('click',e=>{
+  const b=e.target.closest('.gtab'); if(!b)return;
+  gtopic=+b.dataset.i; renderGuide();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gpanel.classList.contains('on'))closeGuide();});
+
 
 applyLang();
 </script></body></html>
