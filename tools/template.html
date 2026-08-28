@@ -132,6 +132,32 @@ input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px
 .chip[aria-pressed="true"]{background:linear-gradient(96deg,rgba(139,92,255,.34),rgba(34,211,238,.24));
   border-color:rgba(160,120,255,.75);color:#fff;box-shadow:0 0 20px -6px var(--v)}
 .hint{color:var(--dim);font-size:12.5px;margin:0 0 10px}
+button.pill{font:inherit;font-size:11.5px;line-height:1.5;cursor:pointer}
+button.pill:hover{filter:brightness(1.32);border-color:rgba(255,255,255,.5)}
+
+/* group popup - the ranking stays where it is; the members open beside it */
+.gmodal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  padding:24px;background:rgba(4,2,16,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.gmodal.on{display:flex}
+.gmbox{width:min(620px,100%);max-height:min(80vh,760px);display:flex;flex-direction:column;
+  border-radius:20px;overflow:hidden;background:rgba(13,9,40,.97);border:1px solid var(--stroke2);
+  box-shadow:0 34px 90px -20px rgba(0,0,0,.9)}
+.gmhead{position:relative;padding:16px 48px 13px 18px;border-bottom:1px solid var(--stroke);flex:none}
+.gmhead h4{margin:0;font-size:15px;color:var(--ink)}
+.gmhead p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
+.gmhead code{font:11px ui-monospace,monospace;color:#a5f3ea}
+.gmclose{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:1px solid var(--stroke2);
+  color:var(--muted);border-radius:9px;width:27px;height:27px;cursor:pointer;font:inherit;font-size:13px;line-height:1}
+.gmclose:hover{color:#fff;background:rgba(255,255,255,.16)}
+.gmbody{overflow-y:auto;flex:1}
+.gmrow{display:grid;grid-template-columns:44px 30px 1fr auto;gap:11px;align-items:center;
+  padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.055)}
+.gmrow:last-child{border-bottom:0}
+.gmrow .r{color:var(--dim);font-variant-numeric:tabular-nums;font-size:12.5px}
+.gmrow .t{font-weight:800;color:#a5f3ea;font-size:14px}
+.gmrow .i{font:10.5px ui-monospace,monospace;color:#6b70a2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gmrow .n{text-align:right;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);white-space:nowrap}
+@media(max-width:560px){.gmodal{padding:10px}.gmrow{grid-template-columns:38px 26px 1fr;gap:9px}.gmrow .n{display:none}}
 .sigfilter{display:none;align-items:center;gap:8px;font-size:12.5px;color:#ffd98a;
   border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.1);border-radius:999px;padding:6px 8px 6px 14px}
 .sigfilter.on{display:inline-flex}
@@ -357,10 +383,18 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
   <div class="gtabs" id="gtabs"></div>
   <div class="gbody" id="gbody"></div>
 </aside>
+<div class="gmodal" id="gmodal" role="dialog" aria-label="group">
+  <div class="gmbox">
+    <div class="gmhead"><h4 id="gmtitle"></h4><p id="gmsub"></p>
+      <button class="gmclose" id="gmclose" aria-label="close">&#10005;</button></div>
+    <div class="gmbody" id="gmbody"></div>
+  </div>
+</div>
 </main>
 
 <script>
 const data=__DATA__;
+const GROUPS=__GROUPS__;
 
 /* ==================== i18n ==================== */
 const I18N={
@@ -394,7 +428,8 @@ en:{
  howto:[['▶','<b>Click any row</b> to open the 6-axis hexagon and the full list of items to check'],
         ['🔎','Search by ticker or pool ID'],
         ['↕','Sort by score, RTT, stake or blocks'],
-        ['⬡','Both the distribution bands and the hexagon vertices are clickable filters']],
+        ['⬡','Both the distribution bands and the hexagon vertices are clickable filters'],
+        ['×N','<b>Press a count like "KES in sync ×23"</b> to open all 23 of those pools']],
  rankingTitle:'Ranking',
  searchPh:'🔎 Search ticker or pool ID',
  allGrades:'All',
@@ -409,6 +444,10 @@ en:{
  hitsSome:(n,shown)=>n.toLocaleString('en-US')+' pools match'+(shown?' (showing top '+shown.toLocaleString('en-US')+')':'')+' — click a row for details',
  hitsNone:'No pools match. Try a different search term or filter.',
  sigFilterLabel:'Signal: ',
+ grpKes:'KES cluster ', grpIp:'Shared IP ', grpPools:' pools',
+ grpAll:(n,shown)=>'All '+n+' are listed. '+shown+' of them are ranked; the rest minted no blocks recently or were not probed.',
+ grpSameOnly:'Every pool sharing this appears below.',
+ grpUnranked:'not ranked',
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
  dBenign:'Why this may still be normal: ',
@@ -589,7 +628,8 @@ ja:{
  howto:[['▶','<b>行をクリック</b>すると、6軸の六角形と確認項目の全文が開きます'],
         ['🔎','Ticker / Pool ID で検索できます'],
         ['↕','並び順はスコア・RTT・Stake・Blocks から選べます'],
-        ['⬡','分布図の帯・六角形の頂点はどちらもクリックで絞り込めます']],
+        ['⬡','分布図の帯・六角形の頂点はどちらもクリックで絞り込めます'],
+        ['×N','<b>「KES同期 ×23」のような数字を押す</b>と、その23プールが一覧で開きます']],
  rankingTitle:'ランキング',
  searchPh:'🔎 Ticker / Pool ID を検索',
  allGrades:'すべて',
@@ -604,6 +644,10 @@ ja:{
  hitsSome:(n,shown)=>n.toLocaleString('ja-JP')+' 件が該当'+(shown?'（上位 '+shown.toLocaleString('ja-JP')+' 件を表示）':'')+' — 行をクリックすると詳細が開きます',
  hitsNone:'該当するプールがありません。検索語やフィルターを変えてみてください。',
  sigFilterLabel:'シグナル：',
+ grpKes:'KESクラスター ', grpIp:'共有IP ', grpPools:'プール',
+ grpAll:(n,shown)=>'共有する'+n+'プールをすべて表示しています。うち'+shown+'件がランキング対象で、残りは直近のブロック生成またはプローブ対象外です。',
+ grpSameOnly:'これを共有するプールは以下がすべてです。',
+ grpUnranked:'ランキング対象外',
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
  dBenign:'正常である可能性：',
@@ -948,8 +992,10 @@ function poolHex(x){
 function signalsHtml(x){
   const p=[],P=T().pills;
   if(x.shared)    p.push('<span class="pill warn">'+esc(P.ep)+'</span>');
-  if(x.sharedIp)  p.push('<span class="pill warn">'+esc(P.ip)+' ×'+x.sharedIpPools+'</span>');
-  if(x.kesLinked) p.push('<span class="pill warn">'+esc(P.kes)+' ×'+x.kesClusterSize+'</span>');
+  if(x.sharedIp)  p.push(x.ipKey
+                    ? '<button class="pill warn" data-gtype="ip" data-gkey="'+esc(x.ipKey)+'" data-gn="'+x.sharedIpPools+'">'+esc(P.ip)+' ×'+x.sharedIpPools+'</button>'
+                    : '<span class="pill warn">'+esc(P.ip)+' ×'+x.sharedIpPools+'</span>');
+  if(x.kesLinked) p.push('<button class="pill warn" data-gtype="kes" data-gkey="'+esc(x.kesCluster)+'" data-gn="'+x.kesClusterSize+'">'+esc(P.kes)+' ×'+x.kesClusterSize+'</button>');
   if(x.foreign)   p.push('<span class="pill bad">'+esc(P.foreign)+'</span>');
   if(x.removedAll)p.push('<span class="pill bad">'+esc(P.removed)+'</span>');
   return p.length?p.join(''):'<span class="pill ok">'+esc(P.none)+'</span>';
@@ -1091,6 +1137,7 @@ function applyLang(){
   document.querySelector('#methodbody').innerHTML=t.method;
 
   drawCurve();drawHex();syncChips();render();renderGuide();
+  if(gmodal.classList.contains('on')&&lastGroup)openGroup(lastGroup.type,lastGroup.key,lastGroup.n);
   Array.prototype.forEach.call(langsw.children,b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));
 }
 
@@ -1103,6 +1150,8 @@ body.addEventListener('click',function(e){
     setTimeout(()=>{cp.textContent=T().copyBtn;},1400);
     return;
   }
+  const gb=e.target.closest('[data-gtype]');
+  if(gb){openGroup(gb.dataset.gtype,gb.dataset.gkey,+gb.dataset.gn);return;}
   if(e.target.closest('tr.detail'))return;
   const tr=e.target.closest('tr.row');if(!tr)return;
   const p=tr.dataset.pool;
@@ -1125,6 +1174,46 @@ langsw.addEventListener('click',e=>{
 q.addEventListener('input',render);
 limit.addEventListener('change',render);
 sortSel.addEventListener('change',render);
+
+/* ---------------- group popup ---------------- */
+const gmodal=document.querySelector('#gmodal'),gmbody=document.querySelector('#gmbody');
+let lastGroup=null;
+
+const byPool={};data.forEach(x=>{byPool[x.pool]=x;});
+
+function openGroup(type,key,n){
+  lastGroup={type:type,key:key,n:n};
+  const t=T();
+  // pill の x N と件数を一致させるため、ランキング対象外のメンバーも並べる
+  const raw=(GROUPS[type]&&GROUPS[type][key])||[];
+  const members=raw.map(m=>({m:m,x:byPool[m.p]||null}))
+    .sort((a,b)=>(a.x?a.x.rank:Infinity)-(b.x?b.x.rank:Infinity));
+  const ranked=members.filter(o=>o.x).length;
+  document.querySelector('#gmtitle').innerHTML=
+    (type==='kes'?esc(t.grpKes)+esc(key):esc(t.grpIp)+'<code>'+esc(key)+'</code>')+
+    ' &middot; '+members.length+esc(t.grpPools);
+  document.querySelector('#gmsub').textContent=
+    ranked<members.length?t.grpAll(members.length,ranked):t.grpSameOnly;
+  gmbody.innerHTML=members.map(o=>{
+    const x=o.x;
+    if(!x)return '<div class="gmrow" style="opacity:.5">'+
+      '<span class="r">&mdash;</span><span class="badge" style="background:#3a3660"></span>'+
+      '<span><span class="t" style="color:var(--muted)">'+esc(o.m.t||t.noTicker)+'</span>'+
+      '<span class="i" style="display:block">'+esc(o.m.p)+'</span></span>'+
+      '<span class="n"><span class="sub">'+esc(t.grpUnranked)+'</span></span></div>';
+    return '<div class="gmrow"><span class="r">#'+x.rank+'</span>'+
+      '<span class="badge '+x.grade+'">'+x.grade+'</span>'+
+      '<span><span class="t">'+esc(x.ticker||t.noTicker)+'</span>'+
+      '<span class="i" style="display:block">'+esc(x.pool)+'</span></span>'+
+      '<span class="n">'+x.score+' <span class="sub">'+t.scoreOf+'</span><br>'+
+      '<span class="sub">'+fmt(x.stake)+' ₳</span></span></div>';
+  }).join('');
+  gmodal.classList.add('on');
+}
+function closeGroup(){gmodal.classList.remove('on');}
+
+gmodal.addEventListener('click',e=>{if(e.target===gmodal)closeGroup();});
+document.querySelector('#gmclose').addEventListener('click',closeGroup);
 
 /* ---------------- holder guide ---------------- */
 const gfab=document.querySelector('#gfab'),gpanel=document.querySelector('#gpanel'),
@@ -1161,7 +1250,11 @@ gtabs.addEventListener('click',e=>{
   const b=e.target.closest('.gtab'); if(!b)return;
   gtopic=+b.dataset.i; renderGuide();
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gpanel.classList.contains('on'))closeGuide();});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if(gmodal.classList.contains('on'))closeGroup();
+  else if(gpanel.classList.contains('on'))closeGuide();
+});
 
 
 applyLang();

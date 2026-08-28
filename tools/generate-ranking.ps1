@@ -26,11 +26,17 @@ $sharedHosts = Import-Csv (Join-Path $SrcDir 'relay_shared_hosts.csv')
 $kesMembers = Import-Csv (Join-Path $SrcDir 'pool_operator_kes_members.csv')
 $ipMap = @{}
 foreach ($h in $sharedHosts) {
+  $ipKey = "$($h.resolved_ip):$($h.target_port)"
+  $ipPools = [int]$h.pools
   foreach ($poolId in ($h.pool_bech32s -split '\s+')) {
     if (-not $poolId) { continue }
-    if (-not $ipMap.ContainsKey($poolId)) { $ipMap[$poolId] = [pscustomobject]@{ ips=@(); maxPools=0 } }
-    $ipMap[$poolId].ips += "$($h.resolved_ip):$($h.target_port)"
-    $ipMap[$poolId].maxPools = [Math]::Max($ipMap[$poolId].maxPools,[int]$h.pools)
+    if (-not $ipMap.ContainsKey($poolId)) { $ipMap[$poolId] = [pscustomobject]@{ ips=@(); maxPools=0; key=$null } }
+    $ipMap[$poolId].ips += $ipKey
+    # 表示する x N と、クリックで開くグループを一致させるため、最大グループのキーを覚えておく
+    if ($ipPools -gt $ipMap[$poolId].maxPools) {
+      $ipMap[$poolId].maxPools = $ipPools
+      $ipMap[$poolId].key = $ipKey
+    }
   }
 }
 $clusterSizes = @{}; foreach ($g in ($kesMembers | Group-Object cluster_id)) { $clusterSizes[$g.Name] = $g.Count }
@@ -67,16 +73,47 @@ $ranked = foreach ($r in $rows) {
   if ($r.ever_removed_all_relays -eq 't') { $issues += [pscustomobject]@{ code='REMOVED_ALL' } }
   if ($null -ne $rtt -and $rtt -gt 1000) { $issues += [pscustomobject]@{ code='RTT_HIGH'; a=[Math]::Round($rtt,1) } }
   $severity = if (($r.registers_foreign_infrastructure -eq 't') -or $atTip -eq 0 -or ($sharedIp -and $ipMap[$r.pool_bech32].maxPools -ge 10)) {'high'} elseif ($issues.Count -ge 2 -or $kesLinked -or $sharedIp) {'mid'} elseif ($issues.Count -eq 1) {'low'} else {'none'}
-  [pscustomobject]@{ ticker=$r.ticker; pool=$r.pool_bech32; score=[Math]::Round($reachScore+$redundancy+$independence+$ownership+$continuity+$latency,2); stake=[double]$r.stake_ada; delegators=[int]$r.delegators; blocks=[int]$blocks; entries=[int]$r.relay_entries; probed=[int]$probed; reachable=[int]$reachable; atTip=[int]$atTip; rtt=$rtt; shared=($r.shares_endpoint_with_other_pool -eq 't'); sharedIp=$sharedIp; sharedIpPools=$(if($sharedIp){$ipMap[$r.pool_bech32].maxPools}else{0}); kesLinked=$kesLinked; kesCluster=$(if($kesLinked){$kesMap[$r.pool_bech32].id}else{$null}); kesClusterSize=$(if($kesLinked){$kesMap[$r.pool_bech32].size}else{0}); foreign=($r.registers_foreign_infrastructure -eq 't'); removedAll=($r.ever_removed_all_relays -eq 't'); issues=$issues; severity=$severity; checked=$r.last_checked; parts=[pscustomobject]@{reach=[Math]::Round($reachScore,2); redundancy=$redundancy; independence=$independence; ownership=$ownership; continuity=$continuity; latency=$latency} }
+  [pscustomobject]@{ ticker=$r.ticker; pool=$r.pool_bech32; score=[Math]::Round($reachScore+$redundancy+$independence+$ownership+$continuity+$latency,2); stake=[double]$r.stake_ada; delegators=[int]$r.delegators; blocks=[int]$blocks; entries=[int]$r.relay_entries; probed=[int]$probed; reachable=[int]$reachable; atTip=[int]$atTip; rtt=$rtt; shared=($r.shares_endpoint_with_other_pool -eq 't'); sharedIp=$sharedIp; sharedIpPools=$(if($sharedIp){$ipMap[$r.pool_bech32].maxPools}else{0}); ipKey=$(if($sharedIp){$ipMap[$r.pool_bech32].key}else{$null}); kesLinked=$kesLinked; kesCluster=$(if($kesLinked){$kesMap[$r.pool_bech32].id}else{$null}); kesClusterSize=$(if($kesLinked){$kesMap[$r.pool_bech32].size}else{0}); foreign=($r.registers_foreign_infrastructure -eq 't'); removedAll=($r.ever_removed_all_relays -eq 't'); issues=$issues; severity=$severity; checked=$r.last_checked; parts=[pscustomobject]@{reach=[Math]::Round($reachScore,2); redundancy=$redundancy; independence=$independence; ownership=$ownership; continuity=$continuity; latency=$latency} }
 }
 $ranked = @($ranked | Sort-Object @{e='score';Descending=$true}, @{e='reachable';Descending=$true}, @{e='rtt';Ascending=$true}, @{e='stake';Descending=$true})
 for ($i=0; $i -lt $ranked.Count; $i++) { $ranked[$i] | Add-Member rank ($i+1) }
 $json = $ranked | ConvertTo-Json -Depth 6 -Compress
+
+# --- グループ実体 ---------------------------------------------------------
+# プールの pill は「x N」と元データ上の全メンバー数を出す。押したときに N 件
+# そのまま並ぶよう、ランキング対象外のプールも含めた実メンバーを持たせる。
+$tickerMap = @{}
+foreach ($r in $rows) { $tickerMap[$r.pool_bech32] = $r.ticker }
+$rankedSet = @{}
+foreach ($x in $ranked) { $rankedSet[$x.pool] = $true }
+
+function Build-Group($members) {
+  $members = @($members | Where-Object { $_ } | Select-Object -Unique)
+  if ($members.Count -lt 2) { return $null }
+  # ランキングに1件も出てこないグループは、どこからも開けないので載せない
+  if (-not ($members | Where-Object { $rankedSet.ContainsKey($_) })) { return $null }
+  return @($members | ForEach-Object {
+    [pscustomobject]@{ p = $_; t = $(if ($tickerMap.ContainsKey($_)) { $tickerMap[$_] } else { $null }) }
+  })
+}
+
+$ipGroups = @{}
+foreach ($h in $sharedHosts) {
+  $g = Build-Group ($h.pool_bech32s -split '\s+')
+  if ($g) { $ipGroups["$($h.resolved_ip):$($h.target_port)"] = $g }
+}
+$kesGroups = @{}
+foreach ($grp in ($kesMembers | Group-Object cluster_id)) {
+  $g = Build-Group ($grp.Group | ForEach-Object { $_.pool_bech32 })
+  if ($g) { $kesGroups[$grp.Name] = $g }
+}
+$groupsJson = ([pscustomobject]@{ kes = $kesGroups; ip = $ipGroups } | ConvertTo-Json -Depth 6 -Compress)
+Write-Output "  groups: kes=$($kesGroups.Count) ip=$($ipGroups.Count)"
 $checked = ($ranked | Where-Object checked | Select-Object -First 1).checked
 
 # 表示部は work\template.html が単一ソース。__DATA__ と __CHECKED__ だけ差し込む。
 $html = [IO.File]::ReadAllText($tpl, [Text.UTF8Encoding]::new($false))
-$html = $html.Replace('__DATA__',$json).Replace('__CHECKED__',$checked)
+$html = $html.Replace('__DATA__',$json).Replace('__GROUPS__',$groupsJson).Replace('__CHECKED__',$checked)
 # -OutFile may be a bare filename, in which case Split-Path yields ''.
 $out = [IO.Path]::GetFullPath((Join-Path (Get-Location).Path $out))
 $outDir = Split-Path $out -Parent
