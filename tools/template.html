@@ -1096,7 +1096,11 @@ function syncChips(){
 function setGrade(g){grade=g;group=null;syncChips();render();}
 function setSignal(k){signal=k;group=null;syncChips();render();}
 // グループを開くときは他の絞り込みを解除する。狙いは「その仲間を全部見る」なので。
-function setGroup(g){group=g;grade='all';signal=null;openSet.clear();syncChips();render();
+function setGroup(g){
+  // 「その仲間を全部見る」が狙いなので、絞り込みは検索語も含めて解除する。
+  // 検索して見つけた行から押すと、その語でグループが1件に潰れてしまうため。
+  group=g;grade='all';signal=null;q.value='';openSet.clear();
+  syncChips();render();
   document.querySelector('.rankhead').scrollIntoView({block:'start'});}
 
 /* ==================== language application ==================== */
