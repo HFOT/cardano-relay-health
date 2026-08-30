@@ -153,6 +153,17 @@ input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px
   cursor:pointer;transition:.16s}
 .dirbtn:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
 .dirbtn:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
+/* ステーク量の横棒。飽和点(=流通量/k)に縦線を引き、超えた分は色を変える。
+   目盛りの幅は飽和点の150%まで。採点には一切関与しない表示専用。 */
+.satwrap{margin-top:5px}
+.sattrack{position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:visible}
+.sattrack i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--v)}
+.sattrack.over i{background:linear-gradient(90deg,var(--v),var(--a))}
+.satline{position:absolute;top:-2px;bottom:-2px;width:1px;background:rgba(255,255,255,.55)}
+.satline::after{content:'';position:absolute;left:-1px;top:-2px;width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.55)}
+.satnum{display:flex;justify-content:space-between;gap:6px;margin-top:3px;font-size:11px;color:var(--dim);line-height:1.2}
+.satnum b{font-weight:700;color:var(--muted)}
+.satfull{color:var(--a);font-weight:800}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--muted);border-radius:999px;
   padding:7px 15px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.16s}
@@ -383,6 +394,7 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
   </table>
 </div>
 <p class="context" data-i18n="tableNote"></p>
+<p class="context" id="satnote"></p>
 
 <section id="umsection">
 <h2 data-i18n="umTitle"></h2>
@@ -439,6 +451,8 @@ const GROUPS=__GROUPS__;
 // ブロックは作っているのにプローブ先が見つからず、6軸のどれも測れなかったプール。
 // 採点も順位付けもしない。measured の外側にあるという事実だけを別枠で出す。
 const UNMEASURED=__UNMEASURED__;
+// 飽和点 (ADA)。流通量 / k から算出。0 なら取得できなかった日なので目盛りを出さない。
+const SATPOINT=__SATPOINT__;
 
 /* ==================== i18n ==================== */
 const I18N={
@@ -479,8 +493,12 @@ en:{
  sortGroups:['Ranking','Measurements'],
  axisName:{score:'Score', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
    kesSize:'KES cluster', ipSize:'Pools on one IP', relays:'Registered relays',
-   hosts:'Reachable hosts', atTip:'Hosts at tip'},
- axisDir:{score:['Highest first','Lowest first'], rtt:['Fastest first','Slowest first'],
+   hosts:'Reachable hosts', atTip:'Hosts at tip', sat:'Saturation'},
+ satWord:'Saturation', satFull:'FULL',
+ satTitle:p=>p+'% of the saturation point. Past 100% further delegation earns proportionally less. It says nothing about how the pool is run and is not scored.',
+ satNote:pt=>'The bar under each stake figure is the pool against the saturation point ('+pt+' ADA, circulating supply divided by k). The upright mark is 100%. Past it, additional delegation earns proportionally less - a fact about rewards, not about the operator. It is shown only and never scored.',
+ axisDir:{sat:['Highest first','Lowest first'],
+   score:['Highest first','Lowest first'], rtt:['Fastest first','Slowest first'],
    stake:['Largest first','Smallest first'], blocks:['Most first','Fewest first'],
    ticker:['A → Z','Z → A'], kesSize:['Largest first','Smallest first'],
    ipSize:['Most first','Fewest first'], relays:['Most first','Fewest first'],
@@ -542,7 +560,9 @@ en:{
   {d:'2026-08-30',t:'The table can be ordered by measurement, not only by score',
    w:'Every sort option was a verdict of some kind - highest score, lowest score, fastest RTT - and each one carried its direction inside its own name. What to order by and which way round are now two separate controls. The first names the thing only: Score, RTT, Stake, Blocks, Ticker, and a second group holding the measurements themselves - KES cluster, pools on one IP, registered relays, reachable hosts, hosts at tip. Next to it a single arrow flips the direction, up or down, with the wording for whatever is selected - highest, fastest, largest, A to Z - kept in its tooltip rather than in the menu. The measurements order the whole table by quantity rather than by better or worse, which makes it possible to read the shape of the network - how large the biggest clusters are, how many pools sit on one address - without treating either end as a ranking. Clicking a vertex on the signal hexagon switches to the matching measurement, so filtering and ordering stay separate things.'},
   {d:'2026-08-30',t:'A running feed of these entries at the top',
-   w:'The changelog sat collapsed at the foot of the page, so a returning reader had no way of telling whether anything had changed without going to look. The newest entries now scroll across a strip under the introduction, and clicking it opens the full list. It pauses on hover and does not move at all for readers who have asked their system to reduce motion.'}
+   w:'The changelog sat collapsed at the foot of the page, so a returning reader had no way of telling whether anything had changed without going to look. The newest entries now scroll across a strip under the introduction, and clicking it opens the full list. It pauses on hover and does not move at all for readers who have asked their system to reduce motion.'},
+  {d:'2026-08-30',t:'Stake is now shown against the saturation point',
+   w:'A stake figure on its own does not say whether a pool still has room. Each one now carries a bar with an upright mark at the saturation point - circulating supply divided by k, both read from the chain - so it is visible at a glance how much of that a pool holds and whether it has passed it. Past 100%, additional delegation earns proportionally less; that is a fact about rewards and not about how the pool is run, so it is displayed and never scored. Saturation is also available as a sort, and the page carries on without the bar on a day the two values cannot be fetched.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -734,8 +754,12 @@ ja:{
  sortGroups:['順位','測定値'],
  axisName:{score:'スコア', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
    kesSize:'KESクラスター', ipSize:'同じIPのプール', relays:'登録リレー',
-   hosts:'到達ホスト', atTip:'Tip同期ホスト'},
- axisDir:{score:['高い順','低い順'], rtt:['速い順','遅い順'],
+   hosts:'到達ホスト', atTip:'Tip同期ホスト', sat:'飽和度'},
+ satWord:'飽和度', satFull:'飽和',
+ satTitle:p=>'飽和点に対して '+p+'%。100%を超えると、追加の委任は報酬が薄まります。運営の良し悪しとは関係がなく、採点にも使っていません。',
+ satNote:pt=>'ステークの下の横棒は、飽和点（'+pt+' ADA。流通量をkで割った値）に対する位置です。縦線が100%。これを超えると追加の委任は報酬が薄まります。報酬についての事実であって、運営についての評価ではありません。表示のみで採点には使っていません。',
+ axisDir:{sat:['高い順','低い順'],
+   score:['高い順','低い順'], rtt:['速い順','遅い順'],
    stake:['多い順','少ない順'], blocks:['多い順','少ない順'],
    ticker:['A → Z','Z → A'], kesSize:['大きい順','小さい順'],
    ipSize:['多い順','少ない順'], relays:['多い順','少ない順'],
@@ -797,7 +821,9 @@ ja:{
   {d:'2026-08-30',t:'測定値そのもので並べ替えられるようにした',
    w:'並び順はどれも何らかの評価で（スコアが高い順、低い順、RTTが速い順）、しかも向きが名前の中に埋まっていた。「何で並べるか」と「どちら向きか」を2つのコントロールに分けた。前者は名前だけを示す（スコア、RTT、Stake、Blocks、Ticker、および「測定値」の群としてKESクラスター、同じIPのプール、登録リレー、到達ホスト、Tip同期ホスト）。その隣の矢印ひとつで向きを反転する。言葉（高い順、速い順、大きい順、A→Z など）は分類に応じて変わるが、メニューではなくツールチップが持つ。測定値は良し悪しではなく量として全体を並べるので、最大のクラスターがどれくらいか、1つのアドレスに何プールが乗っているかといったネットワークの形を、どちらかの端を順位として扱わずに読める。シグナル六角形の頂点を押したときは対応する測定値に切り替わり、絞り込みと並び順は別のものとして扱う。'},
   {d:'2026-08-30',t:'更新履歴を上部に流すようにした',
-   w:'更新履歴はページ末尾に畳まれていたため、再訪した人が何か変わったかどうかを知るには見に行くしかなかった。新しいものから順に、導入文の下の帯を流れるようにし、押すと一覧が開くようにした。カーソルを乗せると止まり、動きを減らす設定にしている環境では動かない。'}
+   w:'更新履歴はページ末尾に畳まれていたため、再訪した人が何か変わったかどうかを知るには見に行くしかなかった。新しいものから順に、導入文の下の帯を流れるようにし、押すと一覧が開くようにした。カーソルを乗せると止まり、動きを減らす設定にしている環境では動かない。'},
+  {d:'2026-08-30',t:'ステークを飽和点に対して表示するようにした',
+   w:'ステーク量の数字だけでは、そのプールにまだ余地があるかが分からなかった。各行に横棒を置き、飽和点（流通量をkで割った値。どちらもチェーンから取得）に縦線を立てて、飽和点に対してどの位置にいるか、超えているかが一目で分かるようにした。100%を超えると追加の委任は報酬が薄まるが、これは報酬についての事実であって運営についての評価ではないため、表示のみで採点には使っていない。飽和度は並び順の分類にも追加した。2つの値が取得できなかった日は、横棒を出さずにページを生成する。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1186,6 +1212,22 @@ function detailRow(x){
     '</div>'+
   '</div></td></tr>';
 }
+// 飽和バー。目盛りは飽和点の150%まで、飽和線は其の2/3の位置に立つ。
+// 飽和を超えたプールは委任しても報酬が薄まる、という事実の表示。運営の良し悪しではない。
+const SATMAX=1.5;
+function satBar(x){
+  if(!SATPOINT||x.sat==null)return '';
+  const t=T(),over=x.sat>=1;
+  const w=Math.min(x.sat,SATMAX)/SATMAX*100;
+  return '<div class="satwrap" title="'+esc(t.satTitle(Math.round(x.sat*100)))+'">'+
+    '<div class="sattrack'+(over?' over':'')+'">'+
+      '<i style="width:'+w.toFixed(1)+'%"></i>'+
+      '<span class="satline" style="left:'+(100/SATMAX).toFixed(1)+'%"></span>'+
+    '</div>'+
+    '<div class="satnum"><span>'+esc(t.satWord)+' <b>'+Math.round(x.sat*100)+'%</b></span>'+
+      (over?'<span class="satfull">'+esc(t.satFull)+'</span>':'')+'</div></div>';
+}
+
 function rowHtml(x){
   const t=T(),open=openSet.has(x.pool);
   const tipCls=x.atTip===0?'cD':(x.atTip<x.reachable?'cC':'cS');
@@ -1201,7 +1243,8 @@ function rowHtml(x){
     '<td class="num">'+(x.rtt==null?'<span class="sub">'+esc(t.noRtt)+'</span>':'<b>'+fmt(x.rtt)+'</b> <span class="sub">ms</span>')+'</td>'+
     '<td>'+signalsHtml(x)+'</td>'+
     '<td class="num"><div>'+fmt(x.stake)+' <span class="sub">₳</span></div>'+
-      '<div class="sub">'+fmt(x.blocks)+' '+esc(t.blocksWord)+' · '+fmt(x.delegators)+' '+esc(t.delegWord)+'</div></td>'+
+      '<div class="sub">'+fmt(x.blocks)+' '+esc(t.blocksWord)+' · '+fmt(x.delegators)+' '+esc(t.delegWord)+'</div>'+
+      satBar(x)+'</td>'+
   '</tr>'+(open?detailRow(x):'');
 }
 
@@ -1219,7 +1262,8 @@ const SORTAXES=[
   {k:'ipSize', group:1, get:x=>x.sharedIpPools||0},
   {k:'relays', group:1, get:x=>x.entries||0},
   {k:'hosts',  group:1, get:x=>x.reachable||0},
-  {k:'atTip',  group:1, get:x=>x.atTip||0}
+  {k:'atTip',  group:1, get:x=>x.atTip||0},
+  {k:'sat',    group:1, get:x=>x.sat==null?null:x.sat, nullLast:1}
 ];
 const AXIS=k=>SORTAXES.find(a=>a.k===k)||SORTAXES[0];
 // 同値はスコア順に落ち着かせる。RTT未計測は向きに関わらず常に最後。
@@ -1439,6 +1483,10 @@ function applyLang(){
       '<li><span class="pill '+r[0]+'">'+esc(r[1])+'</span><span>'+esc(r[2])+'</span></li>').join('')+'</ul></div>'+
     '<div><h3>'+esc(t.lgHow)+'</h3><ul>'+t.howto.map(r=>
       '<li><span class="caret">'+r[0]+'</span><span>'+r[1]+'</span></li>').join('')+'</ul></div>';
+
+  const sn=document.querySelector('#satnote');
+  sn.hidden=!SATPOINT;
+  if(SATPOINT)sn.textContent=t.satNote(fmt(SATPOINT));
 
   document.querySelector('#refbody').innerHTML=t.risks.map(r=>
     '<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('');

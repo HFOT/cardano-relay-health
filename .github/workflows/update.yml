@@ -61,6 +61,11 @@ jobs:
         shell: powershell
         run: ./tools/fetch-pool-groups.ps1 -OutDir data
 
+      - name: Fetch network saturation point
+        shell: powershell
+        continue-on-error: true
+        run: ./tools/fetch-saturation.ps1 -OutDir data
+
       - name: Fetch relay registration notes
         shell: powershell
         run: ./tools/fetch-relay-notes.ps1 -OutDir data
