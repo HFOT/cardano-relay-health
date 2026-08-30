@@ -1,7 +1,8 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cardano Relay Health Ranking</title>
 <style>
 :root{
-  --bg0:#06031a;--bg1:#0a0726;
+  --bg0:#06031a;--bg1:#0a0726;--bg2:#050214;--optbg:#120d33;
+  --vRGB:139,92,255;--v2RGB:160,120,255;--cRGB:34,211,238;
   --glass:rgba(255,255,255,.038);--glass2:rgba(255,255,255,.06);
   --stroke:rgba(255,255,255,.09);--stroke2:rgba(255,255,255,.17);
   --ink:#eceafd;--muted:#9a9fd0;--dim:#6e73a6;
@@ -14,10 +15,10 @@ body{margin:0;color:var(--ink);font:15px/1.65 system-ui,"Segoe UI","Noto Sans JP
   -webkit-font-smoothing:antialiased;background:var(--bg0);position:relative;overflow-x:hidden}
 body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
   background:
-    radial-gradient(760px 520px at 12% -8%, rgba(139,92,255,.34), transparent 62%),
-    radial-gradient(680px 480px at 88% 4%, rgba(34,211,238,.20), transparent 60%),
+    radial-gradient(760px 520px at 12% -8%, rgba(var(--vRGB),.34), transparent 62%),
+    radial-gradient(680px 480px at 88% 4%, rgba(var(--cRGB),.20), transparent 60%),
     radial-gradient(900px 700px at 50% 108%, rgba(52,226,176,.13), transparent 62%),
-    linear-gradient(180deg,#0a0726 0%,#06031a 55%,#050214 100%)}
+    linear-gradient(180deg,var(--bg1) 0%,var(--bg0) 55%,var(--bg2) 100%)}
 body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
   background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),
                    linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
@@ -33,18 +34,36 @@ h1{font-size:clamp(30px,4.4vw,50px);margin:8px 0 0;letter-spacing:-.03em;line-he
 h2{margin:56px 0 6px;font-size:23px;letter-spacing:-.015em}
 h3{margin:0 0 12px;font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.1em;text-transform:uppercase}
 .kicker{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:11px;letter-spacing:.2em;
-  color:#b9a6ff;border:1px solid rgba(139,92,255,.4);background:rgba(139,92,255,.12);
+  color:#b9a6ff;border:1px solid rgba(var(--vRGB),.4);background:rgba(var(--vRGB),.12);
   border-radius:999px;padding:5px 13px}
 .kicker i{width:6px;height:6px;border-radius:50%;background:var(--m);box-shadow:0 0 9px var(--m);display:block}
 .lead{color:var(--muted);max-width:940px;margin:12px 0 0}
 .lead b{color:var(--ink)}
 
+.topctl{display:flex;align-items:center;gap:8px;flex:none}
+/* 配色切替。骨格は変えずスキンだけ差し替えるので、押しても表の構造は動かない。 */
+.themewrap{position:relative}
+.themebtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+  border:1px solid var(--stroke2);border-radius:999px;background:rgba(255,255,255,.05);cursor:pointer;transition:.16s}
+.themebtn:hover{border-color:rgba(255,255,255,.3)}
+.themebtn:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(var(--vRGB),.24)}
+.themebtn i{width:15px;height:15px;border-radius:50%;display:block;
+  background:conic-gradient(var(--v),var(--c),var(--m),var(--a),var(--p),var(--v))}
+.themepop{position:absolute;right:0;top:calc(100% + 8px);z-index:40;min-width:172px;padding:7px;
+  background:var(--optbg);border:1px solid var(--stroke2);border-radius:13px;
+  box-shadow:0 18px 44px -12px rgba(0,0,0,.75)}
+.themepop h6{margin:3px 8px 6px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);font-weight:800}
+.themeopt{display:flex;align-items:center;gap:9px;width:100%;background:transparent;border:0;border-radius:9px;
+  padding:7px 8px;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;text-align:left;transition:.14s}
+.themeopt:hover{background:rgba(255,255,255,.07);color:var(--ink)}
+.themeopt[aria-checked="true"]{background:rgba(var(--vRGB),.24);color:#fff;font-weight:700}
+.themeopt .sw{width:15px;height:15px;border-radius:50%;flex:none;border:1px solid rgba(255,255,255,.2)}
 .langsw{display:inline-flex;border:1px solid var(--stroke2);border-radius:999px;overflow:hidden;
   background:rgba(255,255,255,.05);flex:none}
 .langsw button{background:transparent;border:0;color:var(--muted);font:inherit;font-size:12.5px;font-weight:700;
   padding:7px 15px;cursor:pointer;transition:.16s}
 .langsw button:hover{color:var(--ink)}
-.langsw button[aria-pressed="true"]{background:linear-gradient(96deg,rgba(139,92,255,.42),rgba(34,211,238,.3));
+.langsw button[aria-pressed="true"]{background:linear-gradient(96deg,rgba(var(--vRGB),.42),rgba(var(--cRGB),.3));
   color:#fff;box-shadow:0 0 20px -6px var(--v)}
 
 .glass{background:var(--glass);border:1px solid var(--stroke);border-radius:18px;
@@ -123,17 +142,17 @@ details.legend[open]>summary::before{content:"▾ "}
 .tools{display:flex;gap:10px;margin:16px 0 10px;flex-wrap:wrap;align-items:center}
 input,select{background:rgba(255,255,255,.05);color:var(--ink);border:1px solid var(--stroke2);
   border-radius:11px;padding:9px 13px;font:inherit;font-size:14px}
-select option{background:#120d33;color:var(--ink)}
+select option{background:var(--optbg);color:var(--ink)}
 input{min-width:252px}
 input::placeholder{color:var(--dim)}
-input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
+input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(var(--vRGB),.24)}
 /* 更新履歴のフィード。新しいものから流し、押すと更新履歴セクションが開く。
    2つ複製して -50% まで動かすことで継ぎ目なく回る。速度は内容の長さから決める。 */
 .feed{display:flex;align-items:center;gap:12px;margin:16px 0 2px;padding:8px 13px;
   border:1px solid var(--stroke2);border-radius:12px;background:rgba(255,255,255,.035);
   cursor:pointer;overflow:hidden;transition:.16s}
 .feed:hover{border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.055)}
-.feed:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
+.feed:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(var(--vRGB),.24)}
 .feedtag{flex:none;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--v)}
 .feedmask{flex:1;min-width:0;overflow:hidden;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);
@@ -152,7 +171,7 @@ input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px
   border-radius:11px;padding:9px 0;width:42px;font:inherit;font-size:15px;line-height:1;
   cursor:pointer;transition:.16s}
 .dirbtn:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
-.dirbtn:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
+.dirbtn:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(var(--vRGB),.24)}
 /* ステーク量の横棒。飽和点(=総供給量/k)に縦線を引き、超えた分は色を変える。
    目盛りの幅は飽和点の150%まで。採点には一切関与しない表示専用。 */
 .sub.fee{color:var(--dim)}
@@ -166,7 +185,7 @@ td.trend{vertical-align:middle}
 .perbtns{display:inline-flex;gap:3px;margin-left:8px;vertical-align:middle}
 .perbtn{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--dim);
   border-radius:6px;padding:2px 6px;font:inherit;font-size:10.5px;font-weight:700;cursor:pointer;line-height:1.4}
-.perbtn[aria-pressed="true"]{background:rgba(139,92,255,.28);border-color:rgba(160,120,255,.7);color:#fff}
+.perbtn[aria-pressed="true"]{background:rgba(var(--vRGB),.28);border-color:rgba(var(--v2RGB),.7);color:#fff}
 .satwrap{margin-top:5px}
 .sattrack{position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:visible}
 .sattrack i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--v)}
@@ -180,8 +199,8 @@ td.trend{vertical-align:middle}
 .chip{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--muted);border-radius:999px;
   padding:7px 15px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.16s}
 .chip:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
-.chip[aria-pressed="true"]{background:linear-gradient(96deg,rgba(139,92,255,.34),rgba(34,211,238,.24));
-  border-color:rgba(160,120,255,.75);color:#fff;box-shadow:0 0 20px -6px var(--v)}
+.chip[aria-pressed="true"]{background:linear-gradient(96deg,rgba(var(--vRGB),.34),rgba(var(--cRGB),.24));
+  border-color:rgba(var(--v2RGB),.75);color:#fff;box-shadow:0 0 20px -6px var(--v)}
 .hint{color:var(--dim);font-size:12.5px;margin:0 0 10px}
 button.pill{font:inherit;font-size:11.5px;line-height:1.5;cursor:pointer}
 button.pill:hover{filter:brightness(1.32);border-color:rgba(255,255,255,.5)}
@@ -207,8 +226,8 @@ thead th{position:sticky;top:0;z-index:2;background:#150f3a;color:#bfc2ec;text-a
   letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:12px;border-bottom:1px solid var(--stroke2)}
 tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.055);vertical-align:middle}
 tbody tr.row{cursor:pointer;transition:background .13s}
-tbody tr.row:hover{background:rgba(139,92,255,.1)}
-tbody tr.row.open{background:rgba(139,92,255,.17)}
+tbody tr.row:hover{background:rgba(var(--vRGB),.1)}
+tbody tr.row.open{background:rgba(var(--vRGB),.17)}
 .rank{font-size:16px;font-weight:800;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
 .ticker{font-weight:800;font-size:15px;color:#a5f3ea}
 .poolid{font:11px/1.45 ui-monospace,"SFMono-Regular",monospace;color:#6b70a2;max-width:210px;
@@ -240,12 +259,12 @@ tr.detail>td{background:rgba(6,3,26,.72);border-bottom:1px solid var(--stroke2);
 .issues li::before{content:"!";flex:none;width:17px;height:17px;border-radius:50%;background:rgba(251,191,36,.2);
   color:var(--a);font-size:11px;font-weight:800;display:grid;place-items:center;margin-top:3px}
 .noissue{color:var(--m);font-size:13px;font-weight:700;margin:0}
-.note{margin:12px 0 0;font-size:12.5px;color:var(--dim);border-left:2px solid rgba(139,92,255,.5);padding-left:12px}
+.note{margin:12px 0 0;font-size:12.5px;color:var(--dim);border-left:2px solid rgba(var(--vRGB),.5);padding-left:12px}
 .note b{color:var(--muted)}
 .idrow{display:flex;gap:8px;align-items:center;margin-top:15px;flex-wrap:wrap}
 .idrow code{font:11px ui-monospace,monospace;color:#8f93c4;word-break:break-all;background:rgba(0,0,0,.3);
   border:1px solid var(--stroke);border-radius:9px;padding:6px 10px}
-.btn{background:linear-gradient(96deg,rgba(139,92,255,.34),rgba(34,211,238,.26));border:1px solid rgba(160,120,255,.6);
+.btn{background:linear-gradient(96deg,rgba(var(--vRGB),.34),rgba(var(--cRGB),.26));border:1px solid rgba(var(--v2RGB),.6);
   color:#e7e2ff;border-radius:9px;padding:6px 13px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
 .btn:hover{filter:brightness(1.22)}
 
@@ -270,9 +289,9 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
 
 /* ---------- holder guide ---------- */
 .gfab{position:fixed;right:20px;bottom:20px;z-index:50;display:inline-flex;align-items:center;gap:9px;
-  background:linear-gradient(96deg,rgba(139,92,255,.92),rgba(34,211,238,.78));border:1px solid rgba(180,150,255,.6);
+  background:linear-gradient(96deg,rgba(var(--vRGB),.92),rgba(var(--cRGB),.78));border:1px solid rgba(var(--v2RGB),.6);
   color:#fff;border-radius:999px;padding:12px 18px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
-  box-shadow:0 10px 32px -8px rgba(139,92,255,.85);transition:.18s}
+  box-shadow:0 10px 32px -8px rgba(var(--vRGB),.85);transition:.18s}
 .gfab:hover{transform:translateY(-2px);filter:brightness(1.14)}
 .gfab i{width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 10px #fff;display:block;flex:none}
 .gpanel{position:fixed;right:20px;bottom:20px;z-index:51;width:min(470px,calc(100vw - 40px));
@@ -291,8 +310,8 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
 .gtab{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--muted);border-radius:999px;
   padding:5px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;transition:.15s}
 .gtab:hover{color:var(--ink);border-color:rgba(255,255,255,.32)}
-.gtab[aria-pressed="true"]{background:linear-gradient(96deg,rgba(139,92,255,.42),rgba(34,211,238,.3));
-  border-color:rgba(160,120,255,.8);color:#fff}
+.gtab[aria-pressed="true"]{background:linear-gradient(96deg,rgba(var(--vRGB),.42),rgba(var(--cRGB),.3));
+  border-color:rgba(var(--v2RGB),.8);color:#fff}
 .gbody{padding:16px 18px 20px;overflow-y:auto;flex:1}
 .gsec{margin:0 0 15px}
 .gsec:last-child{margin-bottom:0}
@@ -321,6 +340,40 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
   .dpad{grid-template-columns:1fr}
 }
 @media(max-width:700px){.wrap{padding:24px 12px}.stats{grid-template-columns:1fr}}
+
+/* テーマ。骨格には触れず配色だけを差し替える。
+   意味を持つ色（--m 正常 / --a 注意 / --p 異常）は全テーマ共通で動かさない。
+   運営者が自分の行を共有するときに、見た目に特色が出せるようにするためのもの。 */
+[data-theme="cardano"]{
+  --bg0:#04102b;--bg1:#071a3e;--bg2:#020a1c;--optbg:#0b2050;
+  --vRGB:0,82,204;--v2RGB:64,140,255;--cRGB:56,189,248;
+  --v:#3b82f6;--v2:#7cb2ff;--c:#38bdf8;
+  --ink:#e6efff;--muted:#93a9d0;--dim:#65799e;
+}
+[data-theme="mint"]{
+  --bg0:#02140f;--bg1:#052018;--bg2:#010c09;--optbg:#0a2b21;
+  --vRGB:16,185,129;--v2RGB:74,222,168;--cRGB:45,212,191;
+  --v:#10b981;--v2:#5eead4;--c:#2dd4bf;
+  --ink:#e4f5ee;--muted:#8fb9a9;--dim:#5f8878;
+}
+[data-theme="ember"]{
+  --bg0:#170803;--bg1:#231005;--bg2:#0d0402;--optbg:#331608;
+  --vRGB:249,115,22;--v2RGB:253,164,90;--cRGB:250,204,21;
+  --v:#f97316;--v2:#fdba74;--c:#facc15;
+  --ink:#fdece0;--muted:#c6a289;--dim:#8f7159;
+}
+[data-theme="slate"]{
+  --bg0:#0b0f16;--bg1:#121822;--bg2:#06080d;--optbg:#1b2430;
+  --vRGB:100,116,139;--v2RGB:148,163,184;--cRGB:125,211,252;
+  --v:#64748b;--v2:#94a3b8;--c:#7dd3fc;
+  --ink:#e8edf5;--muted:#9aa6ba;--dim:#6b7688;
+}
+[data-theme="rose"]{
+  --bg0:#180418;--bg1:#250726;--bg2:#0d020d;--optbg:#380d38;
+  --vRGB:236,72,153;--v2RGB:249,140,190;--cRGB:192,132,252;
+  --v:#ec4899;--v2:#f9a8d4;--c:#c084fc;
+  --ink:#fbe8f4;--muted:#c69ab8;--dim:#8d6b83;
+}
 </style></head>
 <body><main class="wrap">
 
@@ -329,9 +382,15 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
     <div class="kicker"><i></i><span data-i18n="kicker"></span></div>
     <h1 data-i18n="title"></h1>
   </div>
-  <div class="langsw" id="langsw">
-    <button data-lang="en" aria-pressed="true">EN</button>
-    <button data-lang="ja" aria-pressed="false">日本語</button>
+  <div class="topctl">
+    <div class="langsw" id="langsw">
+      <button data-lang="en" aria-pressed="true">EN</button>
+      <button data-lang="ja" aria-pressed="false">日本語</button>
+    </div>
+    <div class="themewrap">
+      <button class="themebtn" id="themebtn" aria-haspopup="true" aria-expanded="false"><i></i></button>
+      <div class="themepop" id="themepop" role="menu" hidden></div>
+    </div>
   </div>
 </div>
 <p class="lead" data-i18n-html="lead"></p>
@@ -550,6 +609,8 @@ en:{
  umNote:'The pools listed here are producing blocks. What is missing is material this page can measure, not something about the pools themselves. They are shown apart from the ranking to keep that distinction clear, not to place them above or below it.',
  umNone:'No pools here match the current search.',
  feedTag:'Updates',
+ themeTitle:'Colour',
+ themes:[['','Violet'],['cardano','Cardano blue'],['mint','Mint'],['ember','Ember'],['slate','Slate'],['rose','Rose']],
  clTitle:'Changelog',
  clNote:'The data itself refreshes through the daily automatic rebuild and is not listed here. This is the history of the page: what changed, and why.',
  changelog:[
@@ -586,7 +647,9 @@ en:{
   {d:'2026-08-30',t:'Registered fees are now shown',
    w:'What a delegator actually receives depends on two numbers the operator registers on chain, and neither was here. Each row now carries the margin and the fixed fee, and both can be sorted on. The fixed fee is worth reading against the size of the pool: it is a flat charge, so it takes a large share of a small epoch reward and a negligible share of a large one. The protocol sets a minimum of 170 ADA and a good many pools sit exactly on it. Neither figure is scored - where an operator sets its fees is an ordinary business decision, not a fault. The holder guide gained a section on fees, and one on saturation alongside it.'},
   {d:'2026-08-30',t:'A stake trend line for each pool',
-   w:'The stake figure said where a pool is but not where it has been coming from. Each row now carries a small line of the last three months alongside the change over that span, and the column header switches between one month and three. The unit is the epoch, not the day: stake only moves at epoch boundaries, and an epoch is five days, so a week would be a line through two points. Each line is scaled to its own pool, which means the shape can be compared across the table but the height cannot. This is display only and never scored - gaining or losing delegation says nothing about how a pool is run.'}
+   w:'The stake figure said where a pool is but not where it has been coming from. Each row now carries a small line of the last three months alongside the change over that span, and the column header switches between one month and three. The unit is the epoch, not the day: stake only moves at epoch boundaries, and an epoch is five days, so a week would be a line through two points. Each line is scaled to its own pool, which means the shape can be compared across the table but the height cannot. This is display only and never scored - gaining or losing delegation says nothing about how a pool is run.'},
+  {d:'2026-08-30',t:'The page can be recoloured',
+   w:'A control next to the language switch changes the palette - violet, Cardano blue, mint, ember, slate or rose. It is a skin and nothing more: no layout, no column, no figure moves, and the colours that carry meaning stay put in every palette, so green still reads as reachable and pink as not, whichever one is chosen. An operator sharing a screenshot of their own row can pick something that looks like theirs. The choice is remembered in the browser it was made in and never leaves it.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -831,6 +894,8 @@ ja:{
  umNote:'ここに挙げたプールはブロックを生成しています。欠けているのは、このページが測定できる材料のほうです。ランキングとは別に表記しているのはその区別のためであり、優劣をつけるものではありません。',
  umNone:'この枠には現在の検索に一致するプールがありません。',
  feedTag:'更新',
+ themeTitle:'配色',
+ themes:[['','バイオレット'],['cardano','カルダノブルー'],['mint','ミント'],['ember','エンバー'],['slate','スレート'],['rose','ローズ']],
  clTitle:'更新履歴',
  clNote:'データそのものは毎日の自動更新で入れ替わるため、ここには載せていません。これはページ自体の履歴です（何を・なぜ変えたか）。',
  changelog:[
@@ -867,7 +932,9 @@ ja:{
   {d:'2026-08-30',t:'登録されている手数料を表示するようにした',
    w:'委任者に実際に届く額は、運営者がチェーン上に登録している2つの数字で決まるが、それがこのページには無かった。各行に変動手数料と固定手数料を表示し、どちらでも並べ替えられるようにした。固定手数料はプールの規模と合わせて読む価値がある。定額なので、エポックの報酬が小さいほど占める割合が大きく、大きいプールではほとんど影響しない。プロトコルの最低額は170ADAで、ちょうどその額にしているプールも相当数ある。どちらも採点には使っていない。手数料をどこに設定するかは事業上の判断であって、欠陥ではないため。ホルダー向け解説にも、飽和度とあわせて手数料の項目を追加した。'},
   {d:'2026-08-30',t:'ステーク推移の線を各プールに追加',
-   w:'ステーク量の数字は現在地を示すだけで、そこに至る動きが見えなかった。各行に直近3か月の推移を小さな線で表示し、その期間の変化率を併記した。列見出しで1か月と3か月を切り替えられる。単位は日ではなくエポックである。ステークはエポック境界でしか動かず、1エポックは5日なので、1週間では点が2つしか打てないため。線はそれぞれのプール自身の最小〜最大に合わせて描いているので、形は表の中で比べられるが高さは比べられない。表示のみで採点には使っていない。委任が増えたか減ったかは、運営の良し悪しとは別の話であるため。'}
+   w:'ステーク量の数字は現在地を示すだけで、そこに至る動きが見えなかった。各行に直近3か月の推移を小さな線で表示し、その期間の変化率を併記した。列見出しで1か月と3か月を切り替えられる。単位は日ではなくエポックである。ステークはエポック境界でしか動かず、1エポックは5日なので、1週間では点が2つしか打てないため。線はそれぞれのプール自身の最小〜最大に合わせて描いているので、形は表の中で比べられるが高さは比べられない。表示のみで採点には使っていない。委任が増えたか減ったかは、運営の良し悪しとは別の話であるため。'},
+  {d:'2026-08-30',t:'配色を選べるようにした',
+   w:'言語切替の隣のボタンで、ページ全体の配色を変えられるようにした（バイオレット、カルダノブルー、ミント、エンバー、スレート、ローズ）。変わるのは色だけで、レイアウトも列も数値も動かない。意味を持つ色はどの配色でも固定してあるので、緑が到達・ピンクが異常という読み方はそのまま通じる。運営者が自分の行のスクリーンショットを共有するときに、自分らしい見た目を選べるようにという意図。選んだ配色はそのブラウザの中だけに保存され、外へは出ない。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1384,7 +1451,8 @@ const body=document.querySelector('#body'),q=document.querySelector('#q'),
       dist=document.querySelector('#dist'),sigBox=document.querySelector('#sigfilter'),
       sigLabel=document.querySelector('#sigfilterlabel'),langsw=document.querySelector('#langsw'),
       umbody=document.querySelector('#umbody'),feed=document.querySelector('#feed'),
-      perbtns=document.querySelector('#perbtns');
+      perbtns=document.querySelector('#perbtns'),
+      themebtn=document.querySelector('#themebtn'),themepop=document.querySelector('#themepop');
 let grade='all',signal=null,group=null;
 // その分類の自然な向き（スコアは高い順、RTTは速い順、TickerはA→Z）を既定にする
 const naturalAsc=k=>!!AXIS(k).firstAsc;
@@ -1518,6 +1586,31 @@ function openChangelog(){
   d.open=true;
   d.scrollIntoView({block:'start',behavior:'smooth'});
 }
+// 配色。骨格には影響せず色だけを差し替えるので、保存して次回も同じ見た目で開けるようにする。
+let theme='';
+try{ theme=localStorage.getItem('crh_theme')||''; }catch(e){}
+function applyTheme(){
+  if(theme)document.documentElement.setAttribute('data-theme',theme);
+  else document.documentElement.removeAttribute('data-theme');
+  try{ theme?localStorage.setItem('crh_theme',theme):localStorage.removeItem('crh_theme'); }catch(e){}
+}
+// 見本の色は CSS 側の定義から読む。色をJSにも書くと二重管理になるため。
+function swatch(k){
+  const probe=document.createElement('div');
+  if(k)probe.setAttribute('data-theme',k);
+  probe.style.display='none';document.body.appendChild(probe);
+  const c=getComputedStyle(probe).getPropertyValue('--v').trim();
+  probe.remove();
+  return c||'#8b5cff';
+}
+function renderThemes(){
+  const t=T();
+  themepop.innerHTML='<h6>'+esc(t.themeTitle)+'</h6>'+t.themes.map(o=>
+    '<button class="themeopt" role="menuitemradio" data-t="'+o[0]+'" aria-checked="'+(o[0]===theme)+'">'+
+      '<span class="sw" style="background:'+swatch(o[0])+'"></span>'+esc(o[1])+'</button>').join('');
+}
+function closeThemes(){themepop.hidden=true;themebtn.setAttribute('aria-expanded','false');}
+
 function syncPeriods(){
   const t=T();
   perbtns.innerHTML=t.periods.map(p=>
@@ -1600,7 +1693,7 @@ function applyLang(){
     '</ul>';
 
   document.querySelector('#backrank').textContent=t.backToRanking;
-  syncPeriods();drawCurve();drawHex();syncChips();render();renderGuide();renderFeed();
+  syncPeriods();renderThemes();drawCurve();drawHex();syncChips();render();renderGuide();renderFeed();
   Array.prototype.forEach.call(langsw.children,b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));
 }
 
@@ -1641,6 +1734,17 @@ sortSel.addEventListener('change',()=>{setAxis(sortSel.value);render();});
 dirBtn.addEventListener('click',()=>{dirAsc=!dirAsc;syncDir();render();});
 perbtns.addEventListener('click',e=>{const b=e.target.closest('.perbtn');
   if(b&&b.dataset.p!==period){period=b.dataset.p;syncPeriods();render();}});
+themebtn.addEventListener('click',e=>{
+  e.stopPropagation();
+  const open=themepop.hidden;
+  themepop.hidden=!open;themebtn.setAttribute('aria-expanded',String(open));
+});
+themepop.addEventListener('click',e=>{
+  const b=e.target.closest('.themeopt');
+  if(!b)return;
+  theme=b.dataset.t;applyTheme();renderThemes();closeThemes();
+});
+document.addEventListener('click',e=>{if(!themepop.hidden&&!e.target.closest('.themewrap'))closeThemes();});
 feed.addEventListener('click',openChangelog);
 feed.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openChangelog();}});
 
@@ -1679,8 +1783,9 @@ gtabs.addEventListener('click',e=>{
   const b=e.target.closest('.gtab'); if(!b)return;
   gtopic=+b.dataset.i; renderGuide();
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gpanel.classList.contains('on'))closeGuide();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(gpanel.classList.contains('on'))closeGuide();if(!themepop.hidden)closeThemes();}});
 
 
+applyTheme();
 applyLang();
 </script></body></html>
