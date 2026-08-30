@@ -66,6 +66,11 @@ jobs:
         continue-on-error: true
         run: ./tools/fetch-saturation.ps1 -OutDir data
 
+      - name: Fetch registered pool fees
+        shell: powershell
+        continue-on-error: true
+        run: ./tools/fetch-pool-fees.ps1 -OutDir data
+
       - name: Fetch relay registration notes
         shell: powershell
         run: ./tools/fetch-relay-notes.ps1 -OutDir data

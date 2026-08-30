@@ -155,6 +155,7 @@ input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px
 .dirbtn:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
 /* ステーク量の横棒。飽和点(=総供給量/k)に縦線を引き、超えた分は色を変える。
    目盛りの幅は飽和点の150%まで。採点には一切関与しない表示専用。 */
+.sub.fee{color:var(--dim)}
 .satwrap{margin-top:5px}
 .sattrack{position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:visible}
 .sattrack i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--v)}
@@ -493,11 +494,14 @@ en:{
  sortGroups:['Ranking','Measurements'],
  axisName:{score:'Score', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
    kesSize:'KES cluster', ipSize:'Pools on one IP', relays:'Registered relays',
-   hosts:'Reachable hosts', atTip:'Hosts at tip', sat:'Saturation'},
+   hosts:'Reachable hosts', atTip:'Hosts at tip', sat:'Saturation',
+   margin:'Margin', fixed:'Fixed fee'},
+ feeWord:'Fee',
  satWord:'Saturation', satFull:'FULL',
  satTitle:p=>p+'% of the saturation point. Past 100% further delegation earns proportionally less. It says nothing about how the pool is run and is not scored.',
  satNote:pt=>'The bar under each stake figure places the pool against the saturation point ('+pt+' ADA: the total supply, which is 45 billion ADA less reserves, divided by k). The upright mark is 100%. Past it, additional delegation earns proportionally less - a fact about rewards, not about the operator. It is shown only and never scored, and it is measured against the stake in this snapshot rather than live.',
  axisDir:{sat:['Highest first','Lowest first'],
+   margin:['Lowest first','Highest first'], fixed:['Lowest first','Highest first'],
    score:['Highest first','Lowest first'], rtt:['Fastest first','Slowest first'],
    stake:['Largest first','Smallest first'], blocks:['Most first','Fewest first'],
    ticker:['A → Z','Z → A'], kesSize:['Largest first','Smallest first'],
@@ -562,7 +566,9 @@ en:{
   {d:'2026-08-30',t:'A running feed of these entries at the top',
    w:'The changelog sat collapsed at the foot of the page, so a returning reader had no way of telling whether anything had changed without going to look. The newest entries now scroll across a strip under the introduction, and clicking it opens the full list. It pauses on hover and does not move at all for readers who have asked their system to reduce motion.'},
   {d:'2026-08-30',t:'Stake is now shown against the saturation point',
-   w:'A stake figure on its own does not say whether a pool still has room. Each one now carries a bar with an upright mark at the saturation point - the total supply (45 billion ADA less reserves) divided by k, both read from the chain - so it is visible at a glance how much of that a pool holds and whether it has passed it. Past 100%, additional delegation earns proportionally less; that is a fact about rewards and not about how the pool is run, so it is displayed and never scored. Saturation is also available as a sort, and the page carries on without the bar on a day the two values cannot be fetched.'}
+   w:'A stake figure on its own does not say whether a pool still has room. Each one now carries a bar with an upright mark at the saturation point - the total supply (45 billion ADA less reserves) divided by k, both read from the chain - so it is visible at a glance how much of that a pool holds and whether it has passed it. Past 100%, additional delegation earns proportionally less; that is a fact about rewards and not about how the pool is run, so it is displayed and never scored. Saturation is also available as a sort, and the page carries on without the bar on a day the two values cannot be fetched.'},
+  {d:'2026-08-30',t:'Registered fees are now shown',
+   w:'What a delegator actually receives depends on two numbers the operator registers on chain, and neither was here. Each row now carries the margin and the fixed fee, and both can be sorted on. The fixed fee is worth reading against the size of the pool: it is a flat charge, so it takes a large share of a small epoch reward and a negligible share of a large one. The protocol sets a minimum of 170 ADA and a good many pools sit exactly on it. Neither figure is scored - where an operator sets its fees is an ordinary business decision, not a fault. The holder guide gained a section on fees, and one on saturation alongside it.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -695,6 +701,15 @@ en:{
     ['chain','Slow propagation means a block takes longer to reach other nodes. Where several blocks compete for the same moment, that is generally thought to be a disadvantage.'],
     ['low','Generally it suggests geographic distance or a congested route.'],
     ['note','<b>Heavily dependent on where it was measured from.</b> A pool far from this vantage point is not slow globally. That is why this axis is worth only 5 points.']]},
+   {k:'sat',label:'Saturation',s:[
+    ['what','The saturation point is the total supply - 45 billion ADA less whatever remains in the reserve - divided by k, the target number of pools set by the protocol, currently 500. That works out near 77.7 million ADA. A pool holding more than that is saturated. The bar under each stake figure shows where a pool sits against it.'],
+    ['holder','A saturated pool earns no more rewards for the extra stake, but the same rewards are shared among more delegators, so each one receives less. If two pools look alike otherwise, the one with room left is the one where your delegation still counts fully.'],
+    ['chain','k is the number of pools the protocol would like the stake spread across. Saturation is the mechanism that pushes stake outward once a pool fills up, rather than letting it pile onto whoever is already largest.'],
+    ['note','This is not scored. A pool is not saturated through any fault of its own - it is saturated because people delegated to it. The figure is measured against the stake in the snapshot this page was built from, so it can sit a little away from what an explorer shows live.']]},
+   {k:'fee',label:'Fees',s:[
+    ['what','Two numbers the operator registers on chain. The fixed fee is a flat amount taken from the pool rewards each epoch before anything else - the protocol sets a minimum, currently 170 ADA, and many pools sit exactly on it. The margin is the percentage of what is left that goes to the operator.'],
+    ['holder','What reaches delegators is what remains after both. The fixed fee weighs most on a small pool: a flat charge is a large share of a small epoch reward and a negligible share of a large one. It is worth reading the two together rather than either alone.'],
+    ['note','Neither is scored, and a higher fee is not a fault - running a pool costs money, and where an operator sets these is an ordinary business decision. What is shown is the figure the operator registered, unaltered.']]},
    {k:'terms',label:'Terms',terms:[
     ['Relay','A server a pool runs so other nodes can connect to it. It receives blocks and transactions and passes them on, like a post office. It is published so anyone can connect.'],
     ['Block producer (BP)','The node that actually makes blocks. On-chain registration covers relay addresses, not where this node sits, so it falls outside what this page can observe.'],
@@ -754,11 +769,14 @@ ja:{
  sortGroups:['順位','測定値'],
  axisName:{score:'スコア', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
    kesSize:'KESクラスター', ipSize:'同じIPのプール', relays:'登録リレー',
-   hosts:'到達ホスト', atTip:'Tip同期ホスト', sat:'飽和度'},
+   hosts:'到達ホスト', atTip:'Tip同期ホスト', sat:'飽和度',
+   margin:'手数料率', fixed:'固定手数料'},
+ feeWord:'手数料',
  satWord:'飽和度', satFull:'飽和',
  satTitle:p=>'飽和点に対して '+p+'%。100%を超えると、追加の委任は報酬が薄まります。運営の良し悪しとは関係がなく、採点にも使っていません。',
  satNote:pt=>'ステークの下の横棒は、飽和点（'+pt+' ADA。総供給量＝最大供給45億ADAから準備金を引いた額を、kで割った値）に対する位置です。縦線が100%。これを超えると追加の委任は報酬が薄まります。報酬についての事実であって、運営についての評価ではありません。表示のみで採点には使っておらず、値はこのスナップショット時点のステークに対するものです。',
  axisDir:{sat:['高い順','低い順'],
+   margin:['低い順','高い順'], fixed:['低い順','高い順'],
    score:['高い順','低い順'], rtt:['速い順','遅い順'],
    stake:['多い順','少ない順'], blocks:['多い順','少ない順'],
    ticker:['A → Z','Z → A'], kesSize:['大きい順','小さい順'],
@@ -823,7 +841,9 @@ ja:{
   {d:'2026-08-30',t:'更新履歴を上部に流すようにした',
    w:'更新履歴はページ末尾に畳まれていたため、再訪した人が何か変わったかどうかを知るには見に行くしかなかった。新しいものから順に、導入文の下の帯を流れるようにし、押すと一覧が開くようにした。カーソルを乗せると止まり、動きを減らす設定にしている環境では動かない。'},
   {d:'2026-08-30',t:'ステークを飽和点に対して表示するようにした',
-   w:'ステーク量の数字だけでは、そのプールにまだ余地があるかが分からなかった。各行に横棒を置き、飽和点（総供給量＝45億ADAから準備金を引いた額を、kで割った値。どちらもチェーンから取得）に縦線を立てて、飽和点に対してどの位置にいるか、超えているかが一目で分かるようにした。100%を超えると追加の委任は報酬が薄まるが、これは報酬についての事実であって運営についての評価ではないため、表示のみで採点には使っていない。飽和度は並び順の分類にも追加した。2つの値が取得できなかった日は、横棒を出さずにページを生成する。'}
+   w:'ステーク量の数字だけでは、そのプールにまだ余地があるかが分からなかった。各行に横棒を置き、飽和点（総供給量＝45億ADAから準備金を引いた額を、kで割った値。どちらもチェーンから取得）に縦線を立てて、飽和点に対してどの位置にいるか、超えているかが一目で分かるようにした。100%を超えると追加の委任は報酬が薄まるが、これは報酬についての事実であって運営についての評価ではないため、表示のみで採点には使っていない。飽和度は並び順の分類にも追加した。2つの値が取得できなかった日は、横棒を出さずにページを生成する。'},
+  {d:'2026-08-30',t:'登録されている手数料を表示するようにした',
+   w:'委任者に実際に届く額は、運営者がチェーン上に登録している2つの数字で決まるが、それがこのページには無かった。各行に変動手数料と固定手数料を表示し、どちらでも並べ替えられるようにした。固定手数料はプールの規模と合わせて読む価値がある。定額なので、エポックの報酬が小さいほど占める割合が大きく、大きいプールではほとんど影響しない。プロトコルの最低額は170ADAで、ちょうどその額にしているプールも相当数ある。どちらも採点には使っていない。手数料をどこに設定するかは事業上の判断であって、欠陥ではないため。ホルダー向け解説にも、飽和度とあわせて手数料の項目を追加した。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -956,6 +976,15 @@ ja:{
     ['chain','伝播が遅いと、作ったブロックが他のノードに届くまでに時間がかかる可能性があります。同じ時間帯に複数のブロックが競合したとき、不利に働きうると考えられています。'],
     ['low','一般的には、地理的に遠い、経路が混雑している、といった状態が考えられます。'],
     ['note','<b>観測地点に強く依存します。</b>ここから遠いプールが、世界的に遅いわけではありません。この項目の配点を5点と低く抑えているのはそのためです。']]},
+   {k:'sat',label:'飽和度',s:[
+    ['what','飽和点は、総供給量（最大供給45億ADAから準備金を引いた額）を k で割った額です。k はプロトコルが「これくらいの数のプールに分散していてほしい」と定めている数で、現在は500。計算すると約7,770万ADAになります。これを超えて委任が集まったプールが飽和状態です。ステーク量の下の横棒が、その飽和点に対する位置を示しています。'],
+    ['holder','飽和したプールでは、それ以上ステークが増えても報酬は増えません。同じ報酬を、より多くの委任者で分け合うことになるので、一人あたりの取り分は減ります。他の条件が同じなら、まだ余地のあるプールの方が、自分の委任が満額で効きます。'],
+    ['chain','飽和の仕組みは、プールが一杯になった時点でステークを外へ押し出すように働きます。すでに大きいところにさらに積み上がり続けることを防ぐための設計です。'],
+    ['note','採点には使っていません。飽和は運営者の落ち度ではなく、委任が集まった結果です。数値はこのページのスナップショット時点のステークに対するものなので、エクスプローラーの現在値とは少しずれることがあります。']]},
+   {k:'fee',label:'手数料',s:[
+    ['what','運営者がチェーン上に登録している2つの数字です。固定手数料は、毎エポックの報酬から最初に定額で引かれる分で、プロトコルが最低額（現在170ADA）を定めており、ちょうどその額にしているプールも多くあります。変動手数料は、残りから運営者が受け取る割合です。'],
+    ['holder','委任者に届くのは、この2つを引いた後の残りです。固定手数料は小さいプールほど重く効きます。定額なので、エポックの報酬が小さいほど占める割合が大きくなり、大きいプールではほとんど気になりません。片方だけでなく、2つを合わせて読むのが実際的です。'],
+    ['note','どちらも採点には使っていません。手数料が高いことは欠陥ではありません。プールの運営には費用がかかり、どこに設定するかは事業上の判断です。ここに出しているのは、運営者自身が登録した額をそのまま表示したものです。']]},
    {k:'terms',label:'用語',terms:[
     ['リレー (relay)','プールが外部のノードと繋がるための中継サーバー。ブロックやトランザクションを受け取って他へ渡す、郵便局のような役割。誰でも接続できるよう公開されている。'],
     ['ブロック生成ノード (BP)','実際にブロックを作るノード。チェーン上に登録されるのはリレーのアドレスで、このノードの所在は登録項目に含まれない。そのため、このページの観測対象には入らない。'],
@@ -1215,6 +1244,15 @@ function detailRow(x){
 // 飽和バー。目盛りは飽和点の150%まで、飽和線は其の2/3の位置に立つ。
 // 飽和を超えたプールは委任しても報酬が薄まる、という事実の表示。運営の良し悪しではない。
 const SATMAX=1.5;
+// 運営者が登録している手数料。委任者の取り分に直結する事実であって、
+// 高い安いは事業上の選択なので採点には使わない。
+function feeLine(x){
+  if(x.margin==null&&x.fixedAda==null)return '';
+  const t=T(),parts=[];
+  if(x.margin!=null)  parts.push((x.margin*100).toFixed(2).replace(/\.?0+$/,'')+'%');
+  if(x.fixedAda!=null)parts.push(fmt(x.fixedAda)+'₳');
+  return '<div class="sub fee">'+esc(t.feeWord)+' '+parts.join(' + ')+'</div>';
+}
 function satBar(x){
   if(!SATPOINT||x.sat==null)return '';
   const t=T(),over=x.sat>=1;
@@ -1244,7 +1282,7 @@ function rowHtml(x){
     '<td>'+signalsHtml(x)+'</td>'+
     '<td class="num"><div>'+fmt(x.stake)+' <span class="sub">₳</span></div>'+
       '<div class="sub">'+fmt(x.blocks)+' '+esc(t.blocksWord)+' · '+fmt(x.delegators)+' '+esc(t.delegWord)+'</div>'+
-      satBar(x)+'</td>'+
+      feeLine(x)+satBar(x)+'</td>'+
   '</tr>'+(open?detailRow(x):'');
 }
 
@@ -1263,7 +1301,9 @@ const SORTAXES=[
   {k:'relays', group:1, get:x=>x.entries||0},
   {k:'hosts',  group:1, get:x=>x.reachable||0},
   {k:'atTip',  group:1, get:x=>x.atTip||0},
-  {k:'sat',    group:1, get:x=>x.sat==null?null:x.sat, nullLast:1}
+  {k:'sat',    group:1, get:x=>x.sat==null?null:x.sat, nullLast:1},
+  {k:'margin', group:1, get:x=>x.margin==null?null:x.margin, nullLast:1, firstAsc:1},
+  {k:'fixed',  group:1, get:x=>x.fixedAda==null?null:x.fixedAda, nullLast:1, firstAsc:1}
 ];
 const AXIS=k=>SORTAXES.find(a=>a.k===k)||SORTAXES[0];
 // 同値はスコア順に落ち着かせる。RTT未計測は向きに関わらず常に最後。

@@ -85,6 +85,17 @@ if (Test-Path $groupsPath) {
 
 # 登録リレーの表記に関する注記（例: httpスキーム付き）。判定ではなく事実の記録で、採点には使わない。
 $relayNoteMap = @{}
+# 運営者が登録している手数料。委任者の取り分に直結するが、料率の高低は
+# 事業上の選択であって欠陥ではない。表示のみで採点には使わない。
+$feeMap = @{}
+$feesPath = Join-Path $SrcDir 'pool_fees.csv'
+if (Test-Path $feesPath) {
+  foreach ($f in (Import-Csv $feesPath)) {
+    if ($f.pool_bech32) { $feeMap[$f.pool_bech32] = [pscustomobject]@{ m=[double]$f.margin; f=[int]$f.fixed_ada } }
+  }
+  Write-Output "  pool_fees.csv: $($feeMap.Count) pools"
+}
+
 # 飽和点。表示のみで採点には使わない。無ければ飽和の目盛りが出ないだけ。
 $satPoint = 0
 $paramsPath = Join-Path $SrcDir 'network_params.csv'
@@ -136,7 +147,7 @@ $ranked = foreach ($r in $rows) {
   if ($r.ever_removed_all_relays -eq 't') { $issues += [pscustomobject]@{ code='REMOVED_ALL' } }
   if ($null -ne $rtt -and $rtt -gt 1000) { $issues += [pscustomobject]@{ code='RTT_HIGH'; a=[Math]::Round($rtt,1) } }
   $severity = if ($isForeign -or $atTip -eq 0 -or ($sharedIp -and $ipMap[$r.pool_bech32].maxPools -ge 10)) {'high'} elseif ($issues.Count -ge 2 -or $kesLinked -or $sharedIp) {'mid'} elseif ($issues.Count -eq 1) {'low'} else {'none'}
-  [pscustomobject]@{ ticker=$r.ticker; pool=$r.pool_bech32; score=[Math]::Round($reachScore+$redundancy+$independence+$ownership+$continuity+$latency,2); stake=[double]$r.stake_ada; sat=$(if($satPoint -gt 0){[Math]::Round([double]$r.stake_ada/$satPoint,4)}else{$null}); delegators=[int]$r.delegators; blocks=[int]$blocks; entries=[int]$r.relay_entries; probed=[int]$probed; reachable=[int]$reachable; atTip=[int]$atTip; rtt=$rtt; shared=($r.shares_endpoint_with_other_pool -eq 't'); sharedIp=$sharedIp; sharedIpPools=$(if($sharedIp){$ipMap[$r.pool_bech32].maxPools}else{0}); ipKey=$(if($sharedIp){$ipMap[$r.pool_bech32].key}else{$null}); kesLinked=$kesLinked; kesCluster=$(if($kesLinked){$kesMap[$r.pool_bech32].id}else{$null}); kesClusterSize=$(if($kesLinked){$kesMap[$r.pool_bech32].size}else{0}); foreign=$isForeign; removedAll=($r.ever_removed_all_relays -eq 't'); issues=$issues; severity=$severity; checked=$r.last_checked; groupLabel=$(if($groupLabelMap.ContainsKey($r.pool_bech32)){$groupLabelMap[$r.pool_bech32]}else{$null}); relayNotes=$(if($relayNoteMap.ContainsKey($r.pool_bech32)){$relayNoteMap[$r.pool_bech32]}else{@()}); parts=[pscustomobject]@{reach=[Math]::Round($reachScore,2); redundancy=$redundancy; independence=$independence; ownership=$ownership; continuity=$continuity; latency=$latency} }
+  [pscustomobject]@{ ticker=$r.ticker; pool=$r.pool_bech32; score=[Math]::Round($reachScore+$redundancy+$independence+$ownership+$continuity+$latency,2); stake=[double]$r.stake_ada; sat=$(if($satPoint -gt 0){[Math]::Round([double]$r.stake_ada/$satPoint,4)}else{$null}); delegators=[int]$r.delegators; blocks=[int]$blocks; margin=$(if($feeMap.ContainsKey($r.pool_bech32)){$feeMap[$r.pool_bech32].m}else{$null}); fixedAda=$(if($feeMap.ContainsKey($r.pool_bech32)){$feeMap[$r.pool_bech32].f}else{$null}); entries=[int]$r.relay_entries; probed=[int]$probed; reachable=[int]$reachable; atTip=[int]$atTip; rtt=$rtt; shared=($r.shares_endpoint_with_other_pool -eq 't'); sharedIp=$sharedIp; sharedIpPools=$(if($sharedIp){$ipMap[$r.pool_bech32].maxPools}else{0}); ipKey=$(if($sharedIp){$ipMap[$r.pool_bech32].key}else{$null}); kesLinked=$kesLinked; kesCluster=$(if($kesLinked){$kesMap[$r.pool_bech32].id}else{$null}); kesClusterSize=$(if($kesLinked){$kesMap[$r.pool_bech32].size}else{0}); foreign=$isForeign; removedAll=($r.ever_removed_all_relays -eq 't'); issues=$issues; severity=$severity; checked=$r.last_checked; groupLabel=$(if($groupLabelMap.ContainsKey($r.pool_bech32)){$groupLabelMap[$r.pool_bech32]}else{$null}); relayNotes=$(if($relayNoteMap.ContainsKey($r.pool_bech32)){$relayNoteMap[$r.pool_bech32]}else{@()}); parts=[pscustomobject]@{reach=[Math]::Round($reachScore,2); redundancy=$redundancy; independence=$independence; ownership=$ownership; continuity=$continuity; latency=$latency} }
 }
 $ranked = @($ranked | Sort-Object @{e='score';Descending=$true}, @{e='reachable';Descending=$true}, @{e='rtt';Ascending=$true}, @{e='stake';Descending=$true})
 for ($i=0; $i -lt $ranked.Count; $i++) { $ranked[$i] | Add-Member rank ($i+1) }
