@@ -156,6 +156,16 @@ input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px
 /* ステーク量の横棒。飽和点(=総供給量/k)に縦線を引き、超えた分は色を変える。
    目盛りの幅は飽和点の150%まで。採点には一切関与しない表示専用。 */
 .sub.fee{color:var(--dim)}
+/* ステーク推移のスパークライン。プール自身の最小〜最大に合わせて描くので、
+   規模の違うプール同士でも形が比べられる。表示専用で採点には関与しない。 */
+.spark{display:flex;align-items:center;gap:7px;margin-top:5px}
+.spark svg{flex:none;overflow:visible}
+.spark .chg{font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.spark .up{color:var(--m)} .spark .dn{color:var(--p)} .spark .flat{color:var(--dim)}
+.perbtns{display:inline-flex;gap:3px;margin-left:7px;vertical-align:middle}
+.perbtn{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--dim);
+  border-radius:6px;padding:2px 6px;font:inherit;font-size:10.5px;font-weight:700;cursor:pointer;line-height:1.4}
+.perbtn[aria-pressed="true"]{background:rgba(139,92,255,.28);border-color:rgba(160,120,255,.7);color:#fff}
 .satwrap{margin-top:5px}
 .sattrack{position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:visible}
 .sattrack i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--v)}
@@ -389,7 +399,7 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
       <th style="width:168px" data-i18n="thReach"></th>
       <th style="width:100px" data-i18n="thRtt"></th>
       <th data-i18n="thSignals"></th>
-      <th style="width:170px" data-i18n="thStake"></th>
+      <th style="width:186px"><span data-i18n="thStake"></span><span class="perbtns" id="perbtns"></span></th>
     </tr></thead>
     <tbody id="body"></tbody>
   </table>
@@ -497,6 +507,10 @@ en:{
    hosts:'Reachable hosts', atTip:'Hosts at tip', sat:'Saturation',
    margin:'Margin', fixed:'Fixed fee'},
  feeWord:'Fee',
+ periods:[['m1','1M'],['m3','3M']],
+ sparkNew:'new',
+ sparkRange:(a,b)=>'From '+a.toFixed(2)+'M to '+b.toFixed(2)+'M ADA.',
+ sparkTitle:n=>'Stake over the last '+n+' epochs, about '+(n*5)+' days. The line is scaled to this pool only, so the shape compares across pools but the height does not. Stake moves at epoch boundaries, so the unit is the epoch and not the day.',
  satWord:'Saturation', satFull:'FULL',
  satTitle:p=>p+'% of the saturation point. Past 100% further delegation earns proportionally less. It says nothing about how the pool is run and is not scored.',
  satNote:pt=>'The bar under each stake figure places the pool against the saturation point ('+pt+' ADA: the total supply, which is 45 billion ADA less reserves, divided by k). The upright mark is 100%. Past it, additional delegation earns proportionally less - a fact about rewards, not about the operator. It is shown only and never scored, and it is measured against the stake in this snapshot rather than live.',
@@ -568,7 +582,9 @@ en:{
   {d:'2026-08-30',t:'Stake is now shown against the saturation point',
    w:'A stake figure on its own does not say whether a pool still has room. Each one now carries a bar with an upright mark at the saturation point - the total supply (45 billion ADA less reserves) divided by k, both read from the chain - so it is visible at a glance how much of that a pool holds and whether it has passed it. Past 100%, additional delegation earns proportionally less; that is a fact about rewards and not about how the pool is run, so it is displayed and never scored. Saturation is also available as a sort, and the page carries on without the bar on a day the two values cannot be fetched.'},
   {d:'2026-08-30',t:'Registered fees are now shown',
-   w:'What a delegator actually receives depends on two numbers the operator registers on chain, and neither was here. Each row now carries the margin and the fixed fee, and both can be sorted on. The fixed fee is worth reading against the size of the pool: it is a flat charge, so it takes a large share of a small epoch reward and a negligible share of a large one. The protocol sets a minimum of 170 ADA and a good many pools sit exactly on it. Neither figure is scored - where an operator sets its fees is an ordinary business decision, not a fault. The holder guide gained a section on fees, and one on saturation alongside it.'}
+   w:'What a delegator actually receives depends on two numbers the operator registers on chain, and neither was here. Each row now carries the margin and the fixed fee, and both can be sorted on. The fixed fee is worth reading against the size of the pool: it is a flat charge, so it takes a large share of a small epoch reward and a negligible share of a large one. The protocol sets a minimum of 170 ADA and a good many pools sit exactly on it. Neither figure is scored - where an operator sets its fees is an ordinary business decision, not a fault. The holder guide gained a section on fees, and one on saturation alongside it.'},
+  {d:'2026-08-30',t:'A stake trend line for each pool',
+   w:'The stake figure said where a pool is but not where it has been coming from. Each row now carries a small line of the last three months alongside the change over that span, and the column header switches between one month and three. The unit is the epoch, not the day: stake only moves at epoch boundaries, and an epoch is five days, so a week would be a line through two points. Each line is scaled to its own pool, which means the shape can be compared across the table but the height cannot. This is display only and never scored - gaining or losing delegation says nothing about how a pool is run.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -772,6 +788,10 @@ ja:{
    hosts:'到達ホスト', atTip:'Tip同期ホスト', sat:'飽和度',
    margin:'手数料率', fixed:'固定手数料'},
  feeWord:'手数料',
+ periods:[['m1','1か月'],['m3','3か月']],
+ sparkNew:'新規',
+ sparkRange:(a,b)=>a.toFixed(2)+'M → '+b.toFixed(2)+'M ADA。',
+ sparkTitle:n=>'直近 '+n+' エポック（約'+(n*5)+'日）のステーク推移。線はこのプール自身の最小〜最大に合わせているため、形は他と比べられますが高さは比べられません。ステークはエポック境界でしか動かないので、単位は日ではなくエポックです。',
  satWord:'飽和度', satFull:'飽和',
  satTitle:p=>'飽和点に対して '+p+'%。100%を超えると、追加の委任は報酬が薄まります。運営の良し悪しとは関係がなく、採点にも使っていません。',
  satNote:pt=>'ステークの下の横棒は、飽和点（'+pt+' ADA。総供給量＝最大供給45億ADAから準備金を引いた額を、kで割った値）に対する位置です。縦線が100%。これを超えると追加の委任は報酬が薄まります。報酬についての事実であって、運営についての評価ではありません。表示のみで採点には使っておらず、値はこのスナップショット時点のステークに対するものです。',
@@ -843,7 +863,9 @@ ja:{
   {d:'2026-08-30',t:'ステークを飽和点に対して表示するようにした',
    w:'ステーク量の数字だけでは、そのプールにまだ余地があるかが分からなかった。各行に横棒を置き、飽和点（総供給量＝45億ADAから準備金を引いた額を、kで割った値。どちらもチェーンから取得）に縦線を立てて、飽和点に対してどの位置にいるか、超えているかが一目で分かるようにした。100%を超えると追加の委任は報酬が薄まるが、これは報酬についての事実であって運営についての評価ではないため、表示のみで採点には使っていない。飽和度は並び順の分類にも追加した。2つの値が取得できなかった日は、横棒を出さずにページを生成する。'},
   {d:'2026-08-30',t:'登録されている手数料を表示するようにした',
-   w:'委任者に実際に届く額は、運営者がチェーン上に登録している2つの数字で決まるが、それがこのページには無かった。各行に変動手数料と固定手数料を表示し、どちらでも並べ替えられるようにした。固定手数料はプールの規模と合わせて読む価値がある。定額なので、エポックの報酬が小さいほど占める割合が大きく、大きいプールではほとんど影響しない。プロトコルの最低額は170ADAで、ちょうどその額にしているプールも相当数ある。どちらも採点には使っていない。手数料をどこに設定するかは事業上の判断であって、欠陥ではないため。ホルダー向け解説にも、飽和度とあわせて手数料の項目を追加した。'}
+   w:'委任者に実際に届く額は、運営者がチェーン上に登録している2つの数字で決まるが、それがこのページには無かった。各行に変動手数料と固定手数料を表示し、どちらでも並べ替えられるようにした。固定手数料はプールの規模と合わせて読む価値がある。定額なので、エポックの報酬が小さいほど占める割合が大きく、大きいプールではほとんど影響しない。プロトコルの最低額は170ADAで、ちょうどその額にしているプールも相当数ある。どちらも採点には使っていない。手数料をどこに設定するかは事業上の判断であって、欠陥ではないため。ホルダー向け解説にも、飽和度とあわせて手数料の項目を追加した。'},
+  {d:'2026-08-30',t:'ステーク推移の線を各プールに追加',
+   w:'ステーク量の数字は現在地を示すだけで、そこに至る動きが見えなかった。各行に直近3か月の推移を小さな線で表示し、その期間の変化率を併記した。列見出しで1か月と3か月を切り替えられる。単位は日ではなくエポックである。ステークはエポック境界でしか動かず、1エポックは5日なので、1週間では点が2つしか打てないため。線はそれぞれのプール自身の最小〜最大に合わせて描いているので、形は表の中で比べられるが高さは比べられない。表示のみで採点には使っていない。委任が増えたか減ったかは、運営の良し悪しとは別の話であるため。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1246,6 +1268,37 @@ function detailRow(x){
 const SATMAX=1.5;
 // 運営者が登録している手数料。委任者の取り分に直結する事実であって、
 // 高い安いは事業上の選択なので採点には使わない。
+// 期間: 直近 PERIODS[period] エポック分だけ描く。1エポック=5日。
+const PERIODS={m1:6,m3:18};
+let period='m3';
+function sparkline(x){
+  if(!x.hist||x.hist.length<2)return '';
+  const t=T(),n=PERIODS[period];
+  const v=x.hist.slice(-n);
+  if(v.length<2)return '';
+  const lo=Math.min(...v),hi=Math.max(...v),span=(hi-lo)||1;
+  const W=74,H=18;
+  const pts=v.map((y,i)=>[(i/(v.length-1)*W).toFixed(1),(H-((y-lo)/span)*H).toFixed(1)]);
+  const first=v[0],last=v[v.length-1];
+  // 起点がほぼ0のプールは倍率が跳ね上がるので、%ではなく倍率で出す。
+  // 起点が完全に0なら比を取れないので、変化率は出さず線だけ描く。
+  let label='',cls='flat';
+  if(first>0){
+    const pct=(last-first)/first*100;
+    cls=Math.abs(pct)<0.05?'flat':(pct>0?'up':'dn');
+    label = Math.abs(pct)>=1000 ? (last/first).toFixed(0)+'×'
+          : Math.abs(pct)>=100  ? (pct>0?'+':'')+pct.toFixed(0)+'%'
+          :                       (pct>0?'+':'')+pct.toFixed(1)+'%';
+  }else if(last>0){ cls='up'; label=t.sparkNew; }
+  const col=cls==='up'?'var(--m)':cls==='dn'?'var(--p)':'var(--dim)';
+  return '<div class="spark" title="'+esc(t.sparkTitle(v.length)+' '+t.sparkRange(first,last))+'">'+
+    '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+
+      '<polyline fill="none" stroke="'+col+'" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" points="'+
+        pts.map(p=>p.join(',')).join(' ')+'"/>'+
+      '<circle cx="'+pts[pts.length-1][0]+'" cy="'+pts[pts.length-1][1]+'" r="1.9" fill="'+col+'"/>'+
+    '</svg>'+
+    (label?'<span class="chg '+cls+'">'+esc(label)+'</span>':'')+'</div>';
+}
 function feeLine(x){
   if(x.margin==null&&x.fixedAda==null)return '';
   const t=T(),parts=[];
@@ -1282,7 +1335,7 @@ function rowHtml(x){
     '<td>'+signalsHtml(x)+'</td>'+
     '<td class="num"><div>'+fmt(x.stake)+' <span class="sub">₳</span></div>'+
       '<div class="sub">'+fmt(x.blocks)+' '+esc(t.blocksWord)+' · '+fmt(x.delegators)+' '+esc(t.delegWord)+'</div>'+
-      feeLine(x)+satBar(x)+'</td>'+
+      feeLine(x)+satBar(x)+sparkline(x)+'</td>'+
   '</tr>'+(open?detailRow(x):'');
 }
 
@@ -1326,7 +1379,8 @@ const body=document.querySelector('#body'),q=document.querySelector('#q'),
       hint=document.querySelector('#hint'),chips=document.querySelector('#chips'),
       dist=document.querySelector('#dist'),sigBox=document.querySelector('#sigfilter'),
       sigLabel=document.querySelector('#sigfilterlabel'),langsw=document.querySelector('#langsw'),
-      umbody=document.querySelector('#umbody'),feed=document.querySelector('#feed');
+      umbody=document.querySelector('#umbody'),feed=document.querySelector('#feed'),
+      perbtns=document.querySelector('#perbtns');
 let grade='all',signal=null,group=null;
 // その分類の自然な向き（スコアは高い順、RTTは速い順、TickerはA→Z）を既定にする
 const naturalAsc=k=>!!AXIS(k).firstAsc;
@@ -1460,6 +1514,11 @@ function openChangelog(){
   d.open=true;
   d.scrollIntoView({block:'start',behavior:'smooth'});
 }
+function syncPeriods(){
+  const t=T();
+  perbtns.innerHTML=t.periods.map(p=>
+    '<button class="perbtn" data-p="'+p[0]+'" aria-pressed="'+(p[0]===period)+'">'+esc(p[1])+'</button>').join('');
+}
 function setGrade(g){grade=g;group=null;syncChips();render();}
 // 頂点を押したら、その項目に対応する測定値の軸に切り替える。対応する測定値がない
 // endpoint 共有のときは、いま選ばれている並び順をそのまま残す。
@@ -1537,7 +1596,7 @@ function applyLang(){
     '</ul>';
 
   document.querySelector('#backrank').textContent=t.backToRanking;
-  drawCurve();drawHex();syncChips();render();renderGuide();renderFeed();
+  syncPeriods();drawCurve();drawHex();syncChips();render();renderGuide();renderFeed();
   Array.prototype.forEach.call(langsw.children,b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));
 }
 
@@ -1576,6 +1635,8 @@ q.addEventListener('input',render);
 limit.addEventListener('change',render);
 sortSel.addEventListener('change',()=>{setAxis(sortSel.value);render();});
 dirBtn.addEventListener('click',()=>{dirAsc=!dirAsc;syncDir();render();});
+perbtns.addEventListener('click',e=>{const b=e.target.closest('.perbtn');
+  if(b&&b.dataset.p!==period){period=b.dataset.p;syncPeriods();render();}});
 feed.addEventListener('click',openChangelog);
 feed.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openChangelog();}});
 

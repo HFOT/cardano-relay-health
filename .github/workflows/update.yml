@@ -71,6 +71,15 @@ jobs:
         continue-on-error: true
         run: ./tools/fetch-pool-fees.ps1 -OutDir data
 
+      # The only fetch here without a bulk form - one request per pool, so it
+      # runs in parallel and still takes ~15 minutes. Display only, so a bad
+      # run costs the sparklines and nothing else.
+      - name: Fetch stake history for sparklines
+        shell: powershell
+        continue-on-error: true
+        timeout-minutes: 40
+        run: ./tools/fetch-pool-history.ps1 -OutDir data -Epochs 18 -Parallel 8
+
       - name: Fetch relay registration notes
         shell: powershell
         run: ./tools/fetch-relay-notes.ps1 -OutDir data
