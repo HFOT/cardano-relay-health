@@ -127,6 +127,32 @@ select option{background:#120d33;color:var(--ink)}
 input{min-width:252px}
 input::placeholder{color:var(--dim)}
 input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
+/* 更新履歴のフィード。新しいものから流し、押すと更新履歴セクションが開く。
+   2つ複製して -50% まで動かすことで継ぎ目なく回る。速度は内容の長さから決める。 */
+.feed{display:flex;align-items:center;gap:12px;margin:16px 0 2px;padding:8px 13px;
+  border:1px solid var(--stroke2);border-radius:12px;background:rgba(255,255,255,.035);
+  cursor:pointer;overflow:hidden;transition:.16s}
+.feed:hover{border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.055)}
+.feed:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
+.feedtag{flex:none;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--v)}
+.feedmask{flex:1;min-width:0;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent)}
+.feedrun{display:inline-flex;gap:32px;white-space:nowrap;will-change:transform;
+  animation:feedscroll 60s linear infinite}
+.feed:hover .feedrun{animation-play-state:paused}
+@keyframes feedscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.feedrun{animation:none}}
+.feeditem{display:inline-flex;gap:8px;align-items:baseline;font-size:12.5px;color:var(--muted)}
+.feeditem .d{color:var(--dim);font-size:11.5px;font-variant-numeric:tabular-nums}
+.feeditem b{color:var(--ink);font-weight:600}
+
+/* 向きは記号ひとつで示す。言葉での説明は title と aria-label が持つ。 */
+.dirbtn{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--muted);
+  border-radius:11px;padding:9px 0;width:42px;font:inherit;font-size:15px;line-height:1;
+  cursor:pointer;transition:.16s}
+.dirbtn:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+.dirbtn:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--muted);border-radius:999px;
   padding:7px 15px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.16s}
@@ -287,6 +313,11 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
 </div>
 <p class="lead" data-i18n-html="lead"></p>
 
+<div class="feed" id="feed" role="button" tabindex="0">
+  <span class="feedtag" data-i18n="feedTag"></span>
+  <div class="feedmask"><div class="feedrun" id="feedrun"></div></div>
+</div>
+
 <section class="stats">
   <div class="stat glass"><span data-i18n="stPools"></span><b id="count">—</b><small data-i18n="stPoolsSub"></small></div>
   <div class="stat glass"><span data-i18n="stMax"></span><b>100</b><small data-i18n="stMaxSub"></small></div>
@@ -331,7 +362,7 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
   </div>
   <span class="sigfilter" id="sigfilter"><span id="sigfilterlabel"></span><button id="sigclear" title="clear">✕</button></span>
   <select id="sort" aria-label="sort by"></select>
-  <select id="dir" aria-label="sort direction"></select>
+  <button id="dir" class="dirbtn"></button>
   <select id="limit"></select>
 </div>
 <p class="hint" id="hint">—</p>
@@ -384,7 +415,7 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
   <div class="method glass" id="methodbody"></div>
 </details>
 
-<details class="method-wrap"><summary data-i18n="clTitle"></summary>
+<details class="method-wrap" id="cl"><summary data-i18n="clTitle"></summary>
   <div class="method glass" id="clbody"></div>
 </details>
 
@@ -480,6 +511,7 @@ en:{
  umOnly:n=>'No ranked pools match, but '+(n===1?'one is':n+' are')+' listed below, in the section this page cannot measure.',
  umNote:'The pools listed here are producing blocks. What is missing is material this page can measure, not something about the pools themselves. They are shown apart from the ranking to keep that distinction clear, not to place them above or below it.',
  umNone:'No pools here match the current search.',
+ feedTag:'Updates',
  clTitle:'Changelog',
  clNote:'The data itself refreshes through the daily automatic rebuild and is not listed here. This is the history of the page: what changed, and why.',
  changelog:[
@@ -508,7 +540,9 @@ en:{
   {d:'2026-08-30',t:'Pools that could not be measured are now named',
    w:'Pools that minted blocks but offered no address to probe were being dropped from the table without comment. Not being measurable is not the same as having a problem, so they are now listed in their own section - still unscored and unranked - and the search box finds them. The section states that blocks can be produced and propagated without a registered relay, and that the reasons for not registering one (limiting exposure to denial-of-service, privacy, a third-party relay service, ordinary configuration) cannot be told apart from outside the chain. Before building it, Koios was used to confirm that none of these pools is retiring and that none has relays registered today.'},
   {d:'2026-08-30',t:'The table can be ordered by measurement, not only by score',
-   w:'Every sort option was a verdict of some kind - highest score, lowest score, fastest RTT - and each one carried its direction inside its own name. What to order by and which way round are now two separate controls. The first names the thing only: Score, RTT, Stake, Blocks, Ticker, and a second group holding the measurements themselves - KES cluster, pools on one IP, registered relays, reachable hosts, hosts at tip. The second control holds the direction, worded to suit whichever is selected. The measurements order the whole table by quantity rather than by better or worse, which makes it possible to read the shape of the network - how large the biggest clusters are, how many pools sit on one address - without treating either end as a ranking. Clicking a vertex on the signal hexagon switches to the matching measurement, so filtering and ordering stay separate things.'}
+   w:'Every sort option was a verdict of some kind - highest score, lowest score, fastest RTT - and each one carried its direction inside its own name. What to order by and which way round are now two separate controls. The first names the thing only: Score, RTT, Stake, Blocks, Ticker, and a second group holding the measurements themselves - KES cluster, pools on one IP, registered relays, reachable hosts, hosts at tip. Next to it a single arrow flips the direction, up or down, with the wording for whatever is selected - highest, fastest, largest, A to Z - kept in its tooltip rather than in the menu. The measurements order the whole table by quantity rather than by better or worse, which makes it possible to read the shape of the network - how large the biggest clusters are, how many pools sit on one address - without treating either end as a ranking. Clicking a vertex on the signal hexagon switches to the matching measurement, so filtering and ordering stay separate things.'},
+  {d:'2026-08-30',t:'A running feed of these entries at the top',
+   w:'The changelog sat collapsed at the foot of the page, so a returning reader had no way of telling whether anything had changed without going to look. The newest entries now scroll across a strip under the introduction, and clicking it opens the full list. It pauses on hover and does not move at all for readers who have asked their system to reduce motion.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -732,6 +766,7 @@ ja:{
  umOnly:n=>'ランキングに該当はありませんが、下の「測定できないプール」の枠に '+n+' 件あります。',
  umNote:'ここに挙げたプールはブロックを生成しています。欠けているのは、このページが測定できる材料のほうです。ランキングとは別に表記しているのはその区別のためであり、優劣をつけるものではありません。',
  umNone:'この枠には現在の検索に一致するプールがありません。',
+ feedTag:'更新',
  clTitle:'更新履歴',
  clNote:'データそのものは毎日の自動更新で入れ替わるため、ここには載せていません。これはページ自体の履歴です（何を・なぜ変えたか）。',
  changelog:[
@@ -760,7 +795,9 @@ ja:{
   {d:'2026-08-30',t:'測定できなかったプールを明示するようにした',
    w:'ブロックを生成しているのにプローブする宛先が見つからず、6軸のどれも測れなかったプールを、これまでは何も言わずに表から落としていた。測れないことと問題があることは別なので、採点も順位付けもしないまま別枠に掲載し、検索でも引けるようにした。登録されたリレーがなくてもブロックの生成と伝播は可能であること、登録しない理由（サービス拒否攻撃への露出を抑える、プライバシー、第三者のリレーサービスの利用、設定上の理由）はチェーンの外側から区別できないことを、枠の説明に明記している。実装前に、該当プールがチェーン上で引退手続き中でないこと、および現在も登録がないことをKoiosで確認した。'},
   {d:'2026-08-30',t:'測定値そのもので並べ替えられるようにした',
-   w:'並び順はどれも何らかの評価で（スコアが高い順、低い順、RTTが速い順）、しかも向きが名前の中に埋まっていた。「何で並べるか」と「どちら向きか」を2つのコントロールに分けた。前者は名前だけを示す（スコア、RTT、Stake、Blocks、Ticker、および「測定値」の群としてKESクラスター、同じIPのプール、登録リレー、到達ホスト、Tip同期ホスト）。後者が向きを持ち、選ばれている分類に合わせて言い回しが変わる。測定値は良し悪しではなく量として全体を並べるので、最大のクラスターがどれくらいか、1つのアドレスに何プールが乗っているかといったネットワークの形を、どちらかの端を順位として扱わずに読める。シグナル六角形の頂点を押したときは対応する測定値に切り替わり、絞り込みと並び順は別のものとして扱う。'}
+   w:'並び順はどれも何らかの評価で（スコアが高い順、低い順、RTTが速い順）、しかも向きが名前の中に埋まっていた。「何で並べるか」と「どちら向きか」を2つのコントロールに分けた。前者は名前だけを示す（スコア、RTT、Stake、Blocks、Ticker、および「測定値」の群としてKESクラスター、同じIPのプール、登録リレー、到達ホスト、Tip同期ホスト）。その隣の矢印ひとつで向きを反転する。言葉（高い順、速い順、大きい順、A→Z など）は分類に応じて変わるが、メニューではなくツールチップが持つ。測定値は良し悪しではなく量として全体を並べるので、最大のクラスターがどれくらいか、1つのアドレスに何プールが乗っているかといったネットワークの形を、どちらかの端を順位として扱わずに読める。シグナル六角形の頂点を押したときは対応する測定値に切り替わり、絞り込みと並び順は別のものとして扱う。'},
+  {d:'2026-08-30',t:'更新履歴を上部に流すようにした',
+   w:'更新履歴はページ末尾に畳まれていたため、再訪した人が何か変わったかどうかを知るには見に行くしかなかった。新しいものから順に、導入文の下の帯を流れるようにし、押すと一覧が開くようにした。カーソルを乗せると止まり、動きを減らす設定にしている環境では動かない。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1186,8 +1223,8 @@ const SORTAXES=[
 ];
 const AXIS=k=>SORTAXES.find(a=>a.k===k)||SORTAXES[0];
 // 同値はスコア順に落ち着かせる。RTT未計測は向きに関わらず常に最後。
-function comparator(axisKey,dirIdx){
-  const ax=AXIS(axisKey),asc=ax.firstAsc?dirIdx===0:dirIdx===1;
+function comparator(axisKey,asc){
+  const ax=AXIS(axisKey);
   return (a,b)=>{
     let av=ax.get(a),bv=ax.get(b);
     if(ax.nullLast){const an=av==null,bn=bv==null;if(an!==bn)return an?1:-1;}
@@ -1201,12 +1238,15 @@ function comparator(axisKey,dirIdx){
 /* ==================== state ==================== */
 const body=document.querySelector('#body'),q=document.querySelector('#q'),
       limit=document.querySelector('#limit'),sortSel=document.querySelector('#sort'),
-      dirSel=document.querySelector('#dir'),
+      dirBtn=document.querySelector('#dir'),
       hint=document.querySelector('#hint'),chips=document.querySelector('#chips'),
       dist=document.querySelector('#dist'),sigBox=document.querySelector('#sigfilter'),
       sigLabel=document.querySelector('#sigfilterlabel'),langsw=document.querySelector('#langsw'),
-      umbody=document.querySelector('#umbody');
+      umbody=document.querySelector('#umbody'),feed=document.querySelector('#feed');
 let grade='all',signal=null,group=null;
+// その分類の自然な向き（スコアは高い順、RTTは速い順、TickerはA→Z）を既定にする
+const naturalAsc=k=>!!AXIS(k).firstAsc;
+let dirAsc=naturalAsc('score');
 const openSet=new Set();
 
 const byPool={};data.forEach(x=>{byPool[x.pool]=x;});
@@ -1230,7 +1270,7 @@ function renderGroup(){
     const tk=(o.x?o.x.ticker:o.u.t)||'', id=o.x?o.x.pool:o.u.p;
     return tk.toLowerCase().indexOf(s)>=0||id.toLowerCase().indexOf(s)>=0;
   });
-  const sorter=comparator(sortSel.value,+dirSel.value);
+  const sorter=comparator(sortSel.value,dirAsc);
   list.sort((a,b)=>(a.x&&b.x)?sorter(a.x,b.x):((a.x?0:1)-(b.x?0:1)));
   document.querySelector('#ranktitle').innerHTML=
     (group.type==='kes'?esc(t.grpKes)+esc(group.key):esc(t.grpIp)+'<code>'+esc(group.key)+'</code>')+
@@ -1282,7 +1322,7 @@ function render(){
   const sig=signal?SIGNALS.find(z=>z.k===signal):null;
   const hits=data.filter(x=>
     (grade==='all'||x.grade===grade)&&(!sig||sig.test(x))&&matchesQuery(x,s)
-  ).sort(comparator(sortSel.value,+dirSel.value));
+  ).sort(comparator(sortSel.value,dirAsc));
   const rows=hits.slice(0,max);
   // 検索語がある間だけ、測れなかった枠の該当件数も添える。
   // ランキング側が0件のときは「ほかに」ではなく、そちらに在ることだけを伝える。
@@ -1301,7 +1341,7 @@ function syncChips(){
 }
 // 分類（何で並べるか）は「順位」と「測定値」の2群。向きは隣の dirSel が持つので、
 // 分類の名前には向きを入れない。向きの言い回しは軸ごとに変わる（速い順／大きい順…）。
-function syncSorts(keep,keepDir){
+function syncSorts(keep){
   const t=T();
   const grp=(gi)=>'<optgroup label="'+esc(t.sortGroups[gi])+'">'+
     SORTAXES.filter(a=>a.group===gi).map(a=>'<option value="'+a.k+'">'+esc(t.axisName[a.k])+'</option>').join('')+
@@ -1309,14 +1349,32 @@ function syncSorts(keep,keepDir){
   sortSel.innerHTML=grp(0)+grp(1);
   sortSel.value=keep!==undefined?keep:sortSel.value;
   if(!sortSel.value)sortSel.value='score';
-  syncDir(keepDir);
+  syncDir();
 }
-function syncDir(keep){
-  const t=T(),want=keep!==undefined?keep:(dirSel.value||'0');
-  dirSel.innerHTML=t.axisDir[sortSel.value].map((lab,i)=>
-    '<option value="'+i+'">'+esc(lab)+'</option>').join('');
-  dirSel.value=want;
-  if(!dirSel.value)dirSel.value='0';
+// 記号だけを出し、言葉（多い順／少ない順など）は title と aria-label が持つ。
+function syncDir(){
+  const t=T(),k=sortSel.value;
+  const word=t.axisDir[k][dirAsc===naturalAsc(k)?0:1];
+  dirBtn.textContent=dirAsc?'↑':'↓';
+  dirBtn.title=word;
+  dirBtn.setAttribute('aria-label',t.axisName[k]+' — '+word);
+}
+function setAxis(k){sortSel.value=k;dirAsc=naturalAsc(k);syncDir();}
+
+// 更新履歴を新しいものから流す。同じ並びを2つ置いて -50% まで動かすと継ぎ目なく回る。
+// 速度は一定（px/秒）にして、件数が増えても流れる速さが変わらないようにする。
+function renderFeed(){
+  const t=T(),run=document.querySelector('#feedrun');
+  const one=t.changelog.slice().reverse().slice(0,8).map(e=>
+    '<span class="feeditem"><span class="d">'+esc(e.d)+'</span><b>'+esc(e.t)+'</b></span>').join('');
+  run.innerHTML=one+one;
+  const dist=run.scrollWidth/2;
+  run.style.animationDuration=dist?Math.round(dist/42)+'s':'60s';
+}
+function openChangelog(){
+  const d=document.querySelector('#cl');
+  d.open=true;
+  d.scrollIntoView({block:'start',behavior:'smooth'});
 }
 function setGrade(g){grade=g;group=null;syncChips();render();}
 // 頂点を押したら、その項目に対応する測定値の軸に切り替える。対応する測定値がない
@@ -1324,7 +1382,7 @@ function setGrade(g){grade=g;group=null;syncChips();render();}
 function setSignal(k){
   signal=k;group=null;syncChips();
   const s=k&&SIGNALS.find(z=>z.k===k);
-  if(s&&s.sort){sortSel.value=s.sort;syncDir('0');}
+  if(s&&s.sort)setAxis(s.sort);
   render();
 }
 // グループを開くときは他の絞り込みを解除する。狙いは「その仲間を全部見る」なので。
@@ -1352,8 +1410,8 @@ function applyLang(){
   document.querySelectorAll('[data-i18n-html]').forEach(el=>{el.innerHTML=t[el.dataset.i18nHtml];});
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=t[el.dataset.i18nPh];});
 
-  const keepSort=sortSel.value||'score',keepDir=dirSel.value||'0',keepLimit=limit.value||'100';
-  syncSorts(keepSort,keepDir);
+  const keepSort=sortSel.value||'score',keepLimit=limit.value||'100';
+  syncSorts(keepSort);
   limit.innerHTML=t.limits.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('');
   limit.value=keepLimit;
 
@@ -1391,7 +1449,7 @@ function applyLang(){
     '</ul>';
 
   document.querySelector('#backrank').textContent=t.backToRanking;
-  drawCurve();drawHex();syncChips();render();renderGuide();
+  drawCurve();drawHex();syncChips();render();renderGuide();renderFeed();
   Array.prototype.forEach.call(langsw.children,b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));
 }
 
@@ -1428,8 +1486,10 @@ langsw.addEventListener('click',e=>{
 });
 q.addEventListener('input',render);
 limit.addEventListener('change',render);
-sortSel.addEventListener('change',()=>{syncDir('0');render();});
-dirSel.addEventListener('change',render);
+sortSel.addEventListener('change',()=>{setAxis(sortSel.value);render();});
+dirBtn.addEventListener('click',()=>{dirAsc=!dirAsc;syncDir();render();});
+feed.addEventListener('click',openChangelog);
+feed.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openChangelog();}});
 
 /* ---------------- holder guide ---------------- */
 const gfab=document.querySelector('#gfab'),gpanel=document.querySelector('#gpanel'),
