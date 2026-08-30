@@ -464,7 +464,7 @@ en:{
   {d:'2026-08-28',t:'Registration separated from ownership',
    w:'A certificate can list any address, and the chain cannot verify who holds it. The guide now describes what was registered rather than what a pool owns, and the page states both limits: not every relay is registered, and a registered address is not guaranteed to belong to the pool. Raised by a reader.'},
   {d:'2026-08-30',t:'Two citations added: pool_groups and relay registration notes',
-   w:'A pool detail now cites cardano-community/pool_groups when two or more currently-ranked pools share a label there - checked first against our own IP/KES-sharing detection, which found nothing that database did not already have. Separately, a registered relay address that includes a URL scheme (http://, https://) is now noted as a formatting detail, not a judgment - most likely a copied config template. Neither affects scoring, and neither depends on BEACNpool - both fetch straight from the chain and are skipped quietly if that fetch has a bad day.'}
+   w:'A pool detail now cites cardano-community/pool_groups when two or more currently-ranked pools share a label there - checked first against our own IP/KES-sharing detection, which found nothing that database did not already have. Separately, a registered relay address that includes a URL scheme (http://, https://) is now noted as a formatting detail, not a judgment - most likely a copied config template. Neither affects scoring, and both are our own independent fetch straight from the chain, skipped quietly if that fetch has a bad day.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -692,7 +692,7 @@ ja:{
   {d:'2026-08-28',t:'「登録」と「所有」を区別',
    w:'証明書には任意のアドレスを書くことができ、その持ち主をチェーン上で確かめる方法はない。解説を「何を登録しているか」の記述に統一し、注意書きに2つの限界（登録されないリレーがある／登録されたアドレスが本人のものとは限らない）を明記した。利用者の指摘がきっかけ。'},
   {d:'2026-08-30',t:'2つの引用を追加：pool_groups と登録リレーの表記メモ',
-   w:'ランキング内の2プール以上が同じラベルを持つ場合、cardano-community/pool_groups の分類を詳細パネルに引用するようにした。先に我々自身のIP/KES共有検出と突き合わせ、そちら側の独自発見は無かったことを確認済み。別途、登録リレーアドレスにURLスキーム（http://・https://）が含まれる場合も、判断ではなく表記上の特徴として記録するようにした（設定テンプレートのコピー残りである可能性が高い）。どちらも採点には影響せず、BEACNpoolのデータにも依存しない。チェーンから直接取得し、取得に失敗した日は静かに省かれる。'}
+   w:'ランキング内の2プール以上が同じラベルを持つ場合、cardano-community/pool_groups の分類を詳細パネルに引用するようにした。先に我々自身のIP/KES共有検出と突き合わせ、そちら側の独自発見は無かったことを確認済み。別途、登録リレーアドレスにURLスキーム（http://・https://）が含まれる場合も、判断ではなく表記上の特徴として記録するようにした（設定テンプレートのコピー残りである可能性が高い）。どちらも採点には影響せず、チェーンから独自に取得している情報。取得に失敗した日は静かに省かれる。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
