@@ -330,7 +330,8 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
     <button class="chip" data-g="D" aria-pressed="false">D</button>
   </div>
   <span class="sigfilter" id="sigfilter"><span id="sigfilterlabel"></span><button id="sigclear" title="clear">✕</button></span>
-  <select id="sort"></select>
+  <select id="sort" aria-label="sort by"></select>
+  <select id="dir" aria-label="sort direction"></select>
   <select id="limit"></select>
 </div>
 <p class="hint" id="hint">—</p>
@@ -444,12 +445,15 @@ en:{
  rankingTitle:'Ranking',
  searchPh:'🔎 Search ticker or pool ID',
  allGrades:'All',
- sorts:[['rank','Sort: highest score'],['scoreAsc','Sort: lowest score'],['rtt','Sort: fastest RTT'],
-        ['stake','Sort: largest stake'],['blocks','Sort: most blocks'],['ticker','Sort: ticker (A→Z)']],
  sortGroups:['Ranking','Measurements'],
- sortMetrics:[['kesSize','Sort: largest KES cluster'],['ipSize','Sort: most pools on one IP'],
-        ['relays','Sort: most registered relays'],['hosts','Sort: most reachable hosts'],
-        ['atTip','Sort: most hosts at tip']],
+ axisName:{score:'Score', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
+   kesSize:'KES cluster', ipSize:'Pools on one IP', relays:'Registered relays',
+   hosts:'Reachable hosts', atTip:'Hosts at tip'},
+ axisDir:{score:['Highest first','Lowest first'], rtt:['Fastest first','Slowest first'],
+   stake:['Largest first','Smallest first'], blocks:['Most first','Fewest first'],
+   ticker:['A → Z','Z → A'], kesSize:['Largest first','Smallest first'],
+   ipSize:['Most first','Fewest first'], relays:['Most first','Fewest first'],
+   hosts:['Most first','Fewest first'], atTip:['Most first','Fewest first']},
  limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','Show all']],
  thPool:'Pool', thHealth:'Health', thStatus:'Status', thReach:'Reachable / At tip',
  thRtt:'Best RTT', thSignals:'Warning signals', thStake:'Stake / Blocks',
@@ -504,7 +508,7 @@ en:{
   {d:'2026-08-30',t:'Pools that could not be measured are now named',
    w:'Pools that minted blocks but offered no address to probe were being dropped from the table without comment. Not being measurable is not the same as having a problem, so they are now listed in their own section - still unscored and unranked - and the search box finds them. The section states that blocks can be produced and propagated without a registered relay, and that the reasons for not registering one (limiting exposure to denial-of-service, privacy, a third-party relay service, ordinary configuration) cannot be told apart from outside the chain. Before building it, Koios was used to confirm that none of these pools is retiring and that none has relays registered today.'},
   {d:'2026-08-30',t:'The table can be ordered by measurement, not only by score',
-   w:'Every sort option was a verdict of some kind - highest score, lowest score, fastest RTT. The sort menu now has a second group holding the measurements themselves: KES cluster size, pools sharing one IP, registered relays, reachable hosts, hosts at tip. These order the whole table by quantity rather than by better or worse, which makes it possible to read the shape of the network - how large the biggest clusters are, how many pools sit on one address - without treating either end as a ranking. Clicking a vertex on the signal hexagon now switches to the matching measurement, so filtering and ordering stay separate things.'}
+   w:'Every sort option was a verdict of some kind - highest score, lowest score, fastest RTT - and each one carried its direction inside its own name. What to order by and which way round are now two separate controls. The first names the thing only: Score, RTT, Stake, Blocks, Ticker, and a second group holding the measurements themselves - KES cluster, pools on one IP, registered relays, reachable hosts, hosts at tip. The second control holds the direction, worded to suit whichever is selected. The measurements order the whole table by quantity rather than by better or worse, which makes it possible to read the shape of the network - how large the biggest clusters are, how many pools sit on one address - without treating either end as a ranking. Clicking a vertex on the signal hexagon switches to the matching measurement, so filtering and ordering stay separate things.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -693,12 +697,15 @@ ja:{
  rankingTitle:'ランキング',
  searchPh:'🔎 Ticker / Pool ID を検索',
  allGrades:'すべて',
- sorts:[['rank','並び順：スコアが高い順'],['scoreAsc','並び順：スコアが低い順'],['rtt','並び順：RTTが速い順'],
-        ['stake','並び順：Stakeが多い順'],['blocks','並び順：Blocksが多い順'],['ticker','並び順：Ticker（A→Z）']],
  sortGroups:['順位','測定値'],
- sortMetrics:[['kesSize','並び順：KESクラスターが大きい順'],['ipSize','並び順：同じIPのプールが多い順'],
-        ['relays','並び順：登録リレーが多い順'],['hosts','並び順：到達ホストが多い順'],
-        ['atTip','並び順：Tip同期ホストが多い順']],
+ axisName:{score:'スコア', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
+   kesSize:'KESクラスター', ipSize:'同じIPのプール', relays:'登録リレー',
+   hosts:'到達ホスト', atTip:'Tip同期ホスト'},
+ axisDir:{score:['高い順','低い順'], rtt:['速い順','遅い順'],
+   stake:['多い順','少ない順'], blocks:['多い順','少ない順'],
+   ticker:['A → Z','Z → A'], kesSize:['大きい順','小さい順'],
+   ipSize:['多い順','少ない順'], relays:['多い順','少ない順'],
+   hosts:['多い順','少ない順'], atTip:['多い順','少ない順']},
  limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','すべて表示']],
  thPool:'Pool', thHealth:'Health', thStatus:'ステータス', thReach:'到達 / Tip同期',
  thRtt:'Best RTT', thSignals:'注意シグナル', thStake:'Stake / Blocks',
@@ -753,7 +760,7 @@ ja:{
   {d:'2026-08-30',t:'測定できなかったプールを明示するようにした',
    w:'ブロックを生成しているのにプローブする宛先が見つからず、6軸のどれも測れなかったプールを、これまでは何も言わずに表から落としていた。測れないことと問題があることは別なので、採点も順位付けもしないまま別枠に掲載し、検索でも引けるようにした。登録されたリレーがなくてもブロックの生成と伝播は可能であること、登録しない理由（サービス拒否攻撃への露出を抑える、プライバシー、第三者のリレーサービスの利用、設定上の理由）はチェーンの外側から区別できないことを、枠の説明に明記している。実装前に、該当プールがチェーン上で引退手続き中でないこと、および現在も登録がないことをKoiosで確認した。'},
   {d:'2026-08-30',t:'測定値そのもので並べ替えられるようにした',
-   w:'並び順はどれも何らかの評価だった（スコアが高い順、低い順、RTTが速い順）。メニューに「測定値」の群を追加し、KESクラスターの大きさ、同じIPを共有するプール数、登録リレー数、到達ホスト数、Tip同期ホスト数で並べられるようにした。良し悪しではなく量として全体を並べるので、最大のクラスターがどれくらいか、1つのアドレスに何プールが乗っているかといったネットワークの形を、どちらかの端を順位として扱わずに読める。シグナル六角形の頂点を押したときは対応する測定値に切り替わるようにし、絞り込みと並び順を別のものとして扱うようにした。'}
+   w:'並び順はどれも何らかの評価で（スコアが高い順、低い順、RTTが速い順）、しかも向きが名前の中に埋まっていた。「何で並べるか」と「どちら向きか」を2つのコントロールに分けた。前者は名前だけを示す（スコア、RTT、Stake、Blocks、Ticker、および「測定値」の群としてKESクラスター、同じIPのプール、登録リレー、到達ホスト、Tip同期ホスト）。後者が向きを持ち、選ばれている分類に合わせて言い回しが変わる。測定値は良し悪しではなく量として全体を並べるので、最大のクラスターがどれくらいか、1つのアドレスに何プールが乗っているかといったネットワークの形を、どちらかの端を順位として扱わずに読める。シグナル六角形の頂点を押したときは対応する測定値に切り替わり、絞り込みと並び順は別のものとして扱う。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1161,25 +1168,40 @@ function rowHtml(x){
   '</tr>'+(open?detailRow(x):'');
 }
 
-const SORTS={
-  rank:(a,b)=>a.rank-b.rank,
-  scoreAsc:(a,b)=>b.rank-a.rank,
-  rtt:(a,b)=>((a.rtt==null)-(b.rtt==null))||((a.rtt||0)-(b.rtt||0))||(a.rank-b.rank),
-  stake:(a,b)=>b.stake-a.stake||a.rank-b.rank,
-  blocks:(a,b)=>b.blocks-a.blocks||a.rank-b.rank,
-  ticker:(a,b)=>(a.ticker||'￿').localeCompare(b.ticker||'￿')||a.rank-b.rank,
-  // 測定値そのものを軸にした並び順。良し悪しではなく量として全プールを並べる。
-  // 同数はスコア順に落ち着かせる。
-  kesSize:(a,b)=>(b.kesClusterSize||0)-(a.kesClusterSize||0)||a.rank-b.rank,
-  ipSize: (a,b)=>(b.sharedIpPools||0)-(a.sharedIpPools||0)||a.rank-b.rank,
-  relays: (a,b)=>(b.entries||0)-(a.entries||0)||a.rank-b.rank,
-  hosts:  (a,b)=>(b.reachable||0)-(a.reachable||0)||a.rank-b.rank,
-  atTip:  (a,b)=>(b.atTip||0)-(a.atTip||0)||a.rank-b.rank
-};
+// 「何で並べるか」(SORTAXES) と「どちら向きか」を分けている。分類の名前に「多い順」を
+// 含めると向きが名前に埋まってしまうので、向きは隣のコントロールが持つ。
+// firstAsc: 1つめの向きが昇順のもの（RTTは速い順＝小さい順、TickerはA→Z）。
+const SORTAXES=[
+  {k:'score',  group:0, get:x=>x.score},
+  {k:'rtt',    group:0, get:x=>x.rtt, nullLast:1, firstAsc:1},
+  {k:'stake',  group:0, get:x=>x.stake},
+  {k:'blocks', group:0, get:x=>x.blocks},
+  // Ticker未設定は、RTT未計測と同じく向きに関わらず常に末尾に置く
+  {k:'ticker', group:0, get:x=>x.ticker||null, kind:'str', nullLast:1, firstAsc:1},
+  {k:'kesSize',group:1, get:x=>x.kesClusterSize||0},
+  {k:'ipSize', group:1, get:x=>x.sharedIpPools||0},
+  {k:'relays', group:1, get:x=>x.entries||0},
+  {k:'hosts',  group:1, get:x=>x.reachable||0},
+  {k:'atTip',  group:1, get:x=>x.atTip||0}
+];
+const AXIS=k=>SORTAXES.find(a=>a.k===k)||SORTAXES[0];
+// 同値はスコア順に落ち着かせる。RTT未計測は向きに関わらず常に最後。
+function comparator(axisKey,dirIdx){
+  const ax=AXIS(axisKey),asc=ax.firstAsc?dirIdx===0:dirIdx===1;
+  return (a,b)=>{
+    let av=ax.get(a),bv=ax.get(b);
+    if(ax.nullLast){const an=av==null,bn=bv==null;if(an!==bn)return an?1:-1;}
+    const r=ax.kind==='str'
+      ?String(av||'￿').localeCompare(String(bv||'￿'))
+      :(av||0)-(bv||0);
+    return (asc?r:-r)||a.rank-b.rank;
+  };
+}
 
 /* ==================== state ==================== */
 const body=document.querySelector('#body'),q=document.querySelector('#q'),
       limit=document.querySelector('#limit'),sortSel=document.querySelector('#sort'),
+      dirSel=document.querySelector('#dir'),
       hint=document.querySelector('#hint'),chips=document.querySelector('#chips'),
       dist=document.querySelector('#dist'),sigBox=document.querySelector('#sigfilter'),
       sigLabel=document.querySelector('#sigfilterlabel'),langsw=document.querySelector('#langsw'),
@@ -1208,7 +1230,7 @@ function renderGroup(){
     const tk=(o.x?o.x.ticker:o.u.t)||'', id=o.x?o.x.pool:o.u.p;
     return tk.toLowerCase().indexOf(s)>=0||id.toLowerCase().indexOf(s)>=0;
   });
-  const sorter=SORTS[sortSel.value];
+  const sorter=comparator(sortSel.value,+dirSel.value);
   list.sort((a,b)=>(a.x&&b.x)?sorter(a.x,b.x):((a.x?0:1)-(b.x?0:1)));
   document.querySelector('#ranktitle').innerHTML=
     (group.type==='kes'?esc(t.grpKes)+esc(group.key):esc(t.grpIp)+'<code>'+esc(group.key)+'</code>')+
@@ -1260,7 +1282,7 @@ function render(){
   const sig=signal?SIGNALS.find(z=>z.k===signal):null;
   const hits=data.filter(x=>
     (grade==='all'||x.grade===grade)&&(!sig||sig.test(x))&&matchesQuery(x,s)
-  ).sort(SORTS[sortSel.value]);
+  ).sort(comparator(sortSel.value,+dirSel.value));
   const rows=hits.slice(0,max);
   // 検索語がある間だけ、測れなかった枠の該当件数も添える。
   // ランキング側が0件のときは「ほかに」ではなく、そちらに在ることだけを伝える。
@@ -1277,14 +1299,24 @@ function syncChips(){
   sigBox.classList.toggle('on',!!sig);
   if(sig)sigLabel.textContent=T().sigFilterLabel+T().signals[sig.k];
 }
-// 並び順は「順位」と「測定値」の2群。測定値の軸は絞り込みと独立に常設する。
-function syncSorts(keep){
+// 分類（何で並べるか）は「順位」と「測定値」の2群。向きは隣の dirSel が持つので、
+// 分類の名前には向きを入れない。向きの言い回しは軸ごとに変わる（速い順／大きい順…）。
+function syncSorts(keep,keepDir){
   const t=T();
-  const grp=(label,rows)=>'<optgroup label="'+esc(label)+'">'+
-    rows.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('')+'</optgroup>';
-  sortSel.innerHTML=grp(t.sortGroups[0],t.sorts)+grp(t.sortGroups[1],t.sortMetrics);
+  const grp=(gi)=>'<optgroup label="'+esc(t.sortGroups[gi])+'">'+
+    SORTAXES.filter(a=>a.group===gi).map(a=>'<option value="'+a.k+'">'+esc(t.axisName[a.k])+'</option>').join('')+
+    '</optgroup>';
+  sortSel.innerHTML=grp(0)+grp(1);
   sortSel.value=keep!==undefined?keep:sortSel.value;
-  if(!sortSel.value)sortSel.value='rank';
+  if(!sortSel.value)sortSel.value='score';
+  syncDir(keepDir);
+}
+function syncDir(keep){
+  const t=T(),want=keep!==undefined?keep:(dirSel.value||'0');
+  dirSel.innerHTML=t.axisDir[sortSel.value].map((lab,i)=>
+    '<option value="'+i+'">'+esc(lab)+'</option>').join('');
+  dirSel.value=want;
+  if(!dirSel.value)dirSel.value='0';
 }
 function setGrade(g){grade=g;group=null;syncChips();render();}
 // 頂点を押したら、その項目に対応する測定値の軸に切り替える。対応する測定値がない
@@ -1292,7 +1324,7 @@ function setGrade(g){grade=g;group=null;syncChips();render();}
 function setSignal(k){
   signal=k;group=null;syncChips();
   const s=k&&SIGNALS.find(z=>z.k===k);
-  if(s&&s.sort)sortSel.value=s.sort;
+  if(s&&s.sort){sortSel.value=s.sort;syncDir('0');}
   render();
 }
 // グループを開くときは他の絞り込みを解除する。狙いは「その仲間を全部見る」なので。
@@ -1320,8 +1352,8 @@ function applyLang(){
   document.querySelectorAll('[data-i18n-html]').forEach(el=>{el.innerHTML=t[el.dataset.i18nHtml];});
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=t[el.dataset.i18nPh];});
 
-  const keepSort=sortSel.value||'rank',keepLimit=limit.value||'100';
-  syncSorts(keepSort);
+  const keepSort=sortSel.value||'score',keepDir=dirSel.value||'0',keepLimit=limit.value||'100';
+  syncSorts(keepSort,keepDir);
   limit.innerHTML=t.limits.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('');
   limit.value=keepLimit;
 
@@ -1396,7 +1428,8 @@ langsw.addEventListener('click',e=>{
 });
 q.addEventListener('input',render);
 limit.addEventListener('change',render);
-sortSel.addEventListener('change',render);
+sortSel.addEventListener('change',()=>{syncDir('0');render();});
+dirSel.addEventListener('change',render);
 
 /* ---------------- holder guide ---------------- */
 const gfab=document.querySelector('#gfab'),gpanel=document.querySelector('#gpanel'),
