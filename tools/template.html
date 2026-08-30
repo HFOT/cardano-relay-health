@@ -153,7 +153,7 @@ input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px
   cursor:pointer;transition:.16s}
 .dirbtn:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
 .dirbtn:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(139,92,255,.24)}
-/* ステーク量の横棒。飽和点(=流通量/k)に縦線を引き、超えた分は色を変える。
+/* ステーク量の横棒。飽和点(=総供給量/k)に縦線を引き、超えた分は色を変える。
    目盛りの幅は飽和点の150%まで。採点には一切関与しない表示専用。 */
 .satwrap{margin-top:5px}
 .sattrack{position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:visible}
@@ -451,7 +451,7 @@ const GROUPS=__GROUPS__;
 // ブロックは作っているのにプローブ先が見つからず、6軸のどれも測れなかったプール。
 // 採点も順位付けもしない。measured の外側にあるという事実だけを別枠で出す。
 const UNMEASURED=__UNMEASURED__;
-// 飽和点 (ADA)。流通量 / k から算出。0 なら取得できなかった日なので目盛りを出さない。
+// 飽和点 (ADA)。総供給量(45億ADA - 準備金) / k。0 なら取得できなかった日なので目盛りを出さない。
 const SATPOINT=__SATPOINT__;
 
 /* ==================== i18n ==================== */
@@ -496,7 +496,7 @@ en:{
    hosts:'Reachable hosts', atTip:'Hosts at tip', sat:'Saturation'},
  satWord:'Saturation', satFull:'FULL',
  satTitle:p=>p+'% of the saturation point. Past 100% further delegation earns proportionally less. It says nothing about how the pool is run and is not scored.',
- satNote:pt=>'The bar under each stake figure is the pool against the saturation point ('+pt+' ADA, circulating supply divided by k). The upright mark is 100%. Past it, additional delegation earns proportionally less - a fact about rewards, not about the operator. It is shown only and never scored.',
+ satNote:pt=>'The bar under each stake figure places the pool against the saturation point ('+pt+' ADA: the total supply, which is 45 billion ADA less reserves, divided by k). The upright mark is 100%. Past it, additional delegation earns proportionally less - a fact about rewards, not about the operator. It is shown only and never scored, and it is measured against the stake in this snapshot rather than live.',
  axisDir:{sat:['Highest first','Lowest first'],
    score:['Highest first','Lowest first'], rtt:['Fastest first','Slowest first'],
    stake:['Largest first','Smallest first'], blocks:['Most first','Fewest first'],
@@ -562,7 +562,7 @@ en:{
   {d:'2026-08-30',t:'A running feed of these entries at the top',
    w:'The changelog sat collapsed at the foot of the page, so a returning reader had no way of telling whether anything had changed without going to look. The newest entries now scroll across a strip under the introduction, and clicking it opens the full list. It pauses on hover and does not move at all for readers who have asked their system to reduce motion.'},
   {d:'2026-08-30',t:'Stake is now shown against the saturation point',
-   w:'A stake figure on its own does not say whether a pool still has room. Each one now carries a bar with an upright mark at the saturation point - circulating supply divided by k, both read from the chain - so it is visible at a glance how much of that a pool holds and whether it has passed it. Past 100%, additional delegation earns proportionally less; that is a fact about rewards and not about how the pool is run, so it is displayed and never scored. Saturation is also available as a sort, and the page carries on without the bar on a day the two values cannot be fetched.'}
+   w:'A stake figure on its own does not say whether a pool still has room. Each one now carries a bar with an upright mark at the saturation point - the total supply (45 billion ADA less reserves) divided by k, both read from the chain - so it is visible at a glance how much of that a pool holds and whether it has passed it. Past 100%, additional delegation earns proportionally less; that is a fact about rewards and not about how the pool is run, so it is displayed and never scored. Saturation is also available as a sort, and the page carries on without the bar on a day the two values cannot be fetched.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -757,7 +757,7 @@ ja:{
    hosts:'到達ホスト', atTip:'Tip同期ホスト', sat:'飽和度'},
  satWord:'飽和度', satFull:'飽和',
  satTitle:p=>'飽和点に対して '+p+'%。100%を超えると、追加の委任は報酬が薄まります。運営の良し悪しとは関係がなく、採点にも使っていません。',
- satNote:pt=>'ステークの下の横棒は、飽和点（'+pt+' ADA。流通量をkで割った値）に対する位置です。縦線が100%。これを超えると追加の委任は報酬が薄まります。報酬についての事実であって、運営についての評価ではありません。表示のみで採点には使っていません。',
+ satNote:pt=>'ステークの下の横棒は、飽和点（'+pt+' ADA。総供給量＝最大供給45億ADAから準備金を引いた額を、kで割った値）に対する位置です。縦線が100%。これを超えると追加の委任は報酬が薄まります。報酬についての事実であって、運営についての評価ではありません。表示のみで採点には使っておらず、値はこのスナップショット時点のステークに対するものです。',
  axisDir:{sat:['高い順','低い順'],
    score:['高い順','低い順'], rtt:['速い順','遅い順'],
    stake:['多い順','少ない順'], blocks:['多い順','少ない順'],
@@ -823,7 +823,7 @@ ja:{
   {d:'2026-08-30',t:'更新履歴を上部に流すようにした',
    w:'更新履歴はページ末尾に畳まれていたため、再訪した人が何か変わったかどうかを知るには見に行くしかなかった。新しいものから順に、導入文の下の帯を流れるようにし、押すと一覧が開くようにした。カーソルを乗せると止まり、動きを減らす設定にしている環境では動かない。'},
   {d:'2026-08-30',t:'ステークを飽和点に対して表示するようにした',
-   w:'ステーク量の数字だけでは、そのプールにまだ余地があるかが分からなかった。各行に横棒を置き、飽和点（流通量をkで割った値。どちらもチェーンから取得）に縦線を立てて、飽和点に対してどの位置にいるか、超えているかが一目で分かるようにした。100%を超えると追加の委任は報酬が薄まるが、これは報酬についての事実であって運営についての評価ではないため、表示のみで採点には使っていない。飽和度は並び順の分類にも追加した。2つの値が取得できなかった日は、横棒を出さずにページを生成する。'}
+   w:'ステーク量の数字だけでは、そのプールにまだ余地があるかが分からなかった。各行に横棒を置き、飽和点（総供給量＝45億ADAから準備金を引いた額を、kで割った値。どちらもチェーンから取得）に縦線を立てて、飽和点に対してどの位置にいるか、超えているかが一目で分かるようにした。100%を超えると追加の委任は報酬が薄まるが、これは報酬についての事実であって運営についての評価ではないため、表示のみで採点には使っていない。飽和度は並び順の分類にも追加した。2つの値が取得できなかった日は、横棒を出さずにページを生成する。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
