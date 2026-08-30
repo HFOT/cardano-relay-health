@@ -158,11 +158,12 @@ input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px
 .sub.fee{color:var(--dim)}
 /* ステーク推移のスパークライン。プール自身の最小〜最大に合わせて描くので、
    規模の違うプール同士でも形が比べられる。表示専用で採点には関与しない。 */
-.spark{display:flex;align-items:center;gap:5px;margin-left:auto;flex:none}
+td.trend{vertical-align:middle}
+.spark{display:flex;align-items:center;gap:8px}
 .spark svg{flex:none;overflow:visible}
-.spark .chg{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.spark .chg{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
 .spark .up{color:var(--m)} .spark .dn{color:var(--p)} .spark .flat{color:var(--dim)}
-.perbtns{display:inline-flex;gap:3px;margin-left:7px;vertical-align:middle}
+.perbtns{display:inline-flex;gap:3px;margin-left:8px;vertical-align:middle}
 .perbtn{background:rgba(255,255,255,.05);border:1px solid var(--stroke2);color:var(--dim);
   border-radius:6px;padding:2px 6px;font:inherit;font-size:10.5px;font-weight:700;cursor:pointer;line-height:1.4}
 .perbtn[aria-pressed="true"]{background:rgba(139,92,255,.28);border-color:rgba(160,120,255,.7);color:#fff}
@@ -399,7 +400,8 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
       <th style="width:168px" data-i18n="thReach"></th>
       <th style="width:100px" data-i18n="thRtt"></th>
       <th data-i18n="thSignals"></th>
-      <th style="width:186px"><span data-i18n="thStake"></span><span class="perbtns" id="perbtns"></span></th>
+      <th style="width:170px" data-i18n="thStake"></th>
+      <th style="width:132px"><span data-i18n="thTrend"></span><span class="perbtns" id="perbtns"></span></th>
     </tr></thead>
     <tbody id="body"></tbody>
   </table>
@@ -523,7 +525,7 @@ en:{
    hosts:['Most first','Fewest first'], atTip:['Most first','Fewest first']},
  limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','Show all']],
  thPool:'Pool', thHealth:'Health', thStatus:'Status', thReach:'Reachable / At tip',
- thRtt:'Best RTT', thSignals:'Warning signals', thStake:'Stake / Blocks',
+ thRtt:'Best RTT', thSignals:'Warning signals', thStake:'Stake / Blocks', thTrend:'Stake trend',
  tableNote:'“Reachable” counts hosts that actually answered after expanding the registered endpoints via SRV; “At tip” counts how many of those had caught up to chain tip. Reachable can exceed the probe count because one name may expand to several hosts.',
  noTicker:'(no ticker)', reachWord:'Reachable', probeWord:'probe', atTipWord:'At tip', hostsWord:'hosts',
  noRtt:'not measured', blocksWord:'blocks', delegWord:'delegators',
@@ -804,7 +806,7 @@ ja:{
    hosts:['多い順','少ない順'], atTip:['多い順','少ない順']},
  limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','すべて表示']],
  thPool:'Pool', thHealth:'Health', thStatus:'ステータス', thReach:'到達 / Tip同期',
- thRtt:'Best RTT', thSignals:'注意シグナル', thStake:'Stake / Blocks',
+ thRtt:'Best RTT', thSignals:'注意シグナル', thStake:'Stake / Blocks', thTrend:'ステーク推移',
  tableNote:'「到達」は登録endpointをSRV展開して実際に応答したホスト数、「Tip同期」はそのうちchain tipに追いついていたホスト数です。1つの名前が複数ホストへ展開されるため、probe対象数より到達数が多くなることがあります。',
  noTicker:'（Ticker未設定）', reachWord:'到達', probeWord:'probe', atTipWord:'Tip同期', hostsWord:'ホスト',
  noRtt:'計測なし', blocksWord:'blocks', delegWord:'委任者',
@@ -1250,7 +1252,7 @@ function detailRow(x){
   const issues=x.issues.length
     ? '<ul class="issues">'+x.issues.map(i=>'<li>'+esc(issueText(i))+'</li>').join('')+'</ul>'
     : '<p class="noissue">'+esc(T().dNoIssue)+'</p>';
-  return '<tr class="detail"><td colspan="8"><div class="dpad">'+
+  return '<tr class="detail"><td colspan="9"><div class="dpad">'+
     '<div class="hexcell"><h3>'+esc(T().dHex)+'</h3>'+poolHex(x)+'</div>'+
     '<div><h3>'+esc(T().dBreak(x.score))+'</h3><div class="axis">'+axes+'</div>'+
       '<div class="idrow"><code>'+esc(x.pool)+'</code>'+
@@ -1277,7 +1279,7 @@ function sparkline(x){
   const v=x.hist.slice(-n);
   if(v.length<2)return '';
   const lo=Math.min(...v),hi=Math.max(...v),span=(hi-lo)||1;
-  const W=46,H=14;
+  const W=64,H=22;
   const pts=v.map((y,i)=>[(i/(v.length-1)*W).toFixed(1),(H-((y-lo)/span)*H).toFixed(1)]);
   const first=v[0],last=v[v.length-1];
   // 起点がほぼ0のプールは倍率が跳ね上がるので、%ではなく倍率で出す。
@@ -1295,7 +1297,7 @@ function sparkline(x){
     '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+
       '<polyline fill="none" stroke="'+col+'" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" points="'+
         pts.map(p=>p.join(',')).join(' ')+'"/>'+
-      '<circle cx="'+pts[pts.length-1][0]+'" cy="'+pts[pts.length-1][1]+'" r="1.7" fill="'+col+'"/>'+
+      '<circle cx="'+pts[pts.length-1][0]+'" cy="'+pts[pts.length-1][1]+'" r="2" fill="'+col+'"/>'+
     '</svg>'+
     (label?'<span class="chg '+cls+'">'+esc(label)+'</span>':'')+'</div>';
 }
@@ -1306,12 +1308,9 @@ function feeLine(x){
   if(x.fixedAda!=null)parts.push(fmt(x.fixedAda)+'₳');
   return '<div class="sub fee">'+esc(t.feeWord)+' '+parts.join(' + ')+'</div>';
 }
-// 飽和度の横棒と、その数値行の右にステーク推移。行を増やさないため同じ行に収める。
-function satRow(x){
-  const t=T(),sp=sparkline(x);
-  const has=SATPOINT&&x.sat!=null;
-  if(!has)return sp?'<div class="satwrap"><div class="satnum">'+sp+'</div></div>':'';
-  const over=x.sat>=1;
+function satBar(x){
+  if(!SATPOINT||x.sat==null)return '';
+  const t=T(),over=x.sat>=1;
   const w=Math.min(x.sat,SATMAX)/SATMAX*100;
   return '<div class="satwrap">'+
     '<div class="sattrack'+(over?' over':'')+'" title="'+esc(t.satTitle(Math.round(x.sat*100)))+'">'+
@@ -1319,9 +1318,8 @@ function satRow(x){
       '<span class="satline" style="left:'+(100/SATMAX).toFixed(1)+'%"></span>'+
     '</div>'+
     '<div class="satnum" title="'+esc(t.satTitle(Math.round(x.sat*100)))+'">'+
-      '<span>'+esc(t.satWord)+' <b>'+Math.round(x.sat*100)+'%</b>'+
-        (over?' <span class="satfull">'+esc(t.satFull)+'</span>':'')+'</span>'+
-      sp+'</div></div>';
+      '<span>'+esc(t.satWord)+' <b>'+Math.round(x.sat*100)+'%</b></span>'+
+      (over?'<span class="satfull">'+esc(t.satFull)+'</span>':'')+'</div></div>';
 }
 
 function rowHtml(x){
@@ -1340,7 +1338,8 @@ function rowHtml(x){
     '<td>'+signalsHtml(x)+'</td>'+
     '<td class="num"><div>'+fmt(x.stake)+' <span class="sub">₳</span></div>'+
       '<div class="sub">'+fmt(x.blocks)+' '+esc(t.blocksWord)+' · '+fmt(x.delegators)+' '+esc(t.delegWord)+'</div>'+
-      feeLine(x)+satRow(x)+'</td>'+
+      feeLine(x)+satBar(x)+'</td>'+
+    '<td class="trend">'+sparkline(x)+'</td>'+
   '</tr>'+(open?detailRow(x):'');
 }
 
@@ -1401,7 +1400,7 @@ function unrankedRow(m){
     '<td class="rank">&mdash;</td>'+
     '<td><div class="ticker" style="color:var(--muted)">'+esc(m.t||t.noTicker)+'</div>'+
       '<div class="poolid" title="'+esc(m.p)+'">'+esc(m.p)+'</div></td>'+
-    '<td colspan="6"><span class="sub">'+esc(t.grpUnranked)+'</span></td></tr>';
+    '<td colspan="7"><span class="sub">'+esc(t.grpUnranked)+'</span></td></tr>';
 }
 
 function renderGroup(){
@@ -1473,7 +1472,7 @@ function render(){
     hits.length?T().hitsSome(hits.length,hits.length>rows.length?rows.length:0)+((s&&umHits)?T().umAlsoHere(umHits):'')
     :(s&&umHits)?T().umOnly(umHits):T().hitsNone;
   body.innerHTML=rows.map(rowHtml).join('')||
-    '<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--dim)">—</td></tr>';
+    '<tr><td colspan="9" style="padding:30px;text-align:center;color:var(--dim)">—</td></tr>';
 }
 function syncChips(){
   Array.prototype.forEach.call(chips.children,c=>c.setAttribute('aria-pressed',String(c.dataset.g===grade)));
