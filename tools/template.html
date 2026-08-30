@@ -116,6 +116,8 @@ details.legend[open]>summary::before{content:"▾ "}
 .pill.ok{color:#7df0c9;border-color:rgba(52,226,176,.42);background:rgba(52,226,176,.11)}
 .pill.warn{color:#ffd98a;border-color:rgba(251,191,36,.42);background:rgba(251,191,36,.11)}
 .pill.bad{color:#ff9bbb;border-color:rgba(255,92,147,.45);background:rgba(255,92,147,.13)}
+.cite{margin:10px 0 0;font-size:12.5px;color:var(--dim);line-height:1.6}
+.cite a{color:#a9b6e6}
 
 /* ---------- toolbar ---------- */
 .tools{display:flex;gap:10px;margin:16px 0 10px;flex-wrap:wrap;align-items:center}
@@ -466,6 +468,8 @@ en:{
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
  dBenign:'Why this may still be normal: ',
  dMeta:(x)=>'Observed '+(x.checked||'—')+' · probed '+x.probed+' · reachable '+x.reachable+' · at tip '+x.atTip+' · registered endpoints '+x.entries,
+ dGroupLabel:(g)=>'Also listed under the label “'+esc(g)+'” in <a href="https://github.com/cardano-community/pool_groups" target="_blank" rel="noopener">pool_groups</a>, a community-run grouping database - shown as a citation, not a judgment we are making.',
+ dRelayNote:(v)=>'One registered relay address includes a URL scheme (“'+esc(v.split('://')[0])+'://”): '+esc(v)+'. Most likely left over from copying a config template, not something deliberate.',
  copyBtn:'Copy pool ID', copyDone:'Copied ✓',
  axes:{reach:'Reachability & tip',redundancy:'Relay redundancy',independence:'Infra independence',
        ownership:'No borrowing',continuity:'Registration continuity',latency:'RTT'},
@@ -523,7 +527,7 @@ en:{
  riskFootnote:'Reference only, no direct deduction: same domain, same ASN, same cloud provider, similar tickers, stake concentration. These easily sweep ordinary users and unrelated pools into the same group, so without further evidence they are not used to deduct points.',
  methodTitle:'Scoring method and caveats',
  method:'<p><b>Reachability & tip sync — 35 pts</b>: reachable/probed and at-tip/probed, 17.5 each.<br><b>Redundancy — 15 pts</b>: 3+ reachable hosts = 15, 2 = 11, 1 = 5.<br><b>Infrastructure & operational independence — 25 pts</b>: endpoint not shared 10, IP not shared 10, no synchronised KES cluster 5.<br><b>No borrowing — 10 pts</b>: awarded when no founding-entity bootstrap backbone is registered.<br><b>Registration continuity — 10 pts</b>: awarded when all relays were never removed in the past.<br><b>RTT — 5 pts</b>: ≤150 ms = 5, ≤300 = 4, ≤600 = 3, ≤1000 = 2, above that = 1.</p><p>Shared information is not proof that operators are the same, and RTT and connectivity results depend on the vantage point and the moment of measurement. Do not treat this ranking as the sole basis for a delegation decision.</p>',
- footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Generated 2026-08-28',
+ footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Group labels via cardano-community/pool_groups · Generated 2026-08-28',
  guide:{
   fab:'Guide for holders',
   title:'Guide for holders',
@@ -690,6 +694,8 @@ ja:{
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
  dBenign:'正常である可能性：',
  dMeta:(x)=>'観測時刻 '+(x.checked||'—')+' ／ probe対象 '+x.probed+' · 到達 '+x.reachable+' · Tip同期 '+x.atTip+' · 登録endpoint '+x.entries,
+ dGroupLabel:(g)=>'コミュニティ運営の名寄せデータベース <a href="https://github.com/cardano-community/pool_groups" target="_blank" rel="noopener">pool_groups</a> では「'+esc(g)+'」として分類されています。ここでは引用として掲載しているだけで、当ページ自体の判断ではありません。',
+ dRelayNote:(v)=>'登録されているリレーアドレスの1つに、URLスキーム（「'+esc(v.split('://')[0])+'://」）が含まれています：'+esc(v)+'。設定テンプレートをコピーした際の残りなど、単純な表記上の特徴である可能性が高く、意図を断定するものではありません。',
  copyBtn:'Pool IDをコピー', copyDone:'コピーしました ✓',
  axes:{reach:'到達性・Tip同期',redundancy:'リレー冗長性',independence:'インフラ独立性',
        ownership:'非借用',continuity:'登録継続性',latency:'RTT'},
@@ -747,7 +753,7 @@ ja:{
  riskFootnote:'参考のみ・直接減点なし：同一ドメイン、同一ASN、同一クラウド事業者、Ticker類似、Stake集中。これらは一般利用者や無関係なpoolまで同一グループ扱いしやすいため、追加証拠なしではランキング減点に使いません。',
  methodTitle:'採点方法と注意点',
  method:'<p><b>到達性・Tip同期 35点</b>：reachable/probed と at-tip/probed を各17.5点。<br><b>冗長性 15点</b>：到達ホスト3以上=15、2=11、1=5。<br><b>インフラ・運用独立性 25点</b>：endpoint非共有10、IP非共有10、KES同期クラスターなし5。<br><b>非借用 10点</b>：founding-entity bootstrap backboneを登録していなければ加点。<br><b>登録継続性 10点</b>：過去に全relayを削除した履歴がなければ加点。<br><b>RTT 5点</b>：≤150ms=5、≤300=4、≤600=3、≤1000=2、それ以上=1。</p><p>共有情報は運営者同一の証明ではなく、RTTと疎通結果は観測地点・時刻に依存します。順位は委任判断の唯一の根拠にはしないでください。</p>',
- footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Generated 2026-08-28',
+ footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Group labels via cardano-community/pool_groups · Generated 2026-08-28',
  guide:{
   fab:'ホルダーへの簡単解説',
   title:'ホルダーへの簡単解説',
@@ -1062,7 +1068,10 @@ function detailRow(x){
       '<button class="btn" data-copy="'+esc(x.pool)+'">'+esc(T().copyBtn)+'</button></div></div>'+
     '<div><h3>'+esc(T().dSignals(x.issues.length))+'</h3>'+issues+
       '<p class="note"><b>'+esc(T().dBenign)+'</b>'+esc(benignList(x))+'</p>'+
-      '<p class="note">'+esc(T().dMeta(x))+'</p></div>'+
+      '<p class="note">'+esc(T().dMeta(x))+'</p>'+
+      (x.groupLabel?('<p class="cite">'+T().dGroupLabel(x.groupLabel)+'</p>'):'')+
+      (x.relayNotes&&x.relayNotes.length?('<p class="cite">'+x.relayNotes.map(n=>T().dRelayNote(n.value)).join('<br>')+'</p>'):'')+
+    '</div>'+
   '</div></td></tr>';
 }
 function rowHtml(x){

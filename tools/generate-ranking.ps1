@@ -53,7 +53,48 @@ if (Test-Path $foreignPath) {
 } else {
   Write-Output "::warning::foreign_infra.csv not found - the no-borrowing axis relies on upstream only"
 }
+
 function N($v) { if ([string]::IsNullOrWhiteSpace($v)) { return 0.0 }; return [double]$v }
+
+# コミュニティが運営する pool_groups DB のラベル。表示のみ・採点には使わない。
+# 我々のIP/KES検出は既にこのDBが把握している構造の後追いに過ぎないことを確認済み
+# なので、独自の名寄せロジックは作らずここを引用する。
+# ただし「SINGLEPOOL」（独立運営の明示ラベル）や、ランキング内に同じラベルの
+# 相手がいない場合は、引用しても比較のしようがなく情報量がないので表示しない。
+$willRank = @{}
+foreach ($r in $rows) {
+  if ($r.minted_last_30_epochs -eq 't' -and (N $r.blocks_last_30_epochs) -gt 0 -and (N $r.endpoints_probed) -gt 0) { $willRank[$r.pool_bech32] = $true }
+}
+$groupLabelMap = @{}
+$groupsPath = Join-Path $SrcDir 'pool_groups.csv'
+if (Test-Path $groupsPath) {
+  $rawLabels = @{}
+  foreach ($g in (Import-Csv $groupsPath)) { if ($g.pool_bech32 -and $g.group_label) { $rawLabels[$g.pool_bech32] = $g.group_label } }
+  $labelCounts = @{}
+  foreach ($kv in $rawLabels.GetEnumerator()) {
+    if ($kv.Value -eq 'SINGLEPOOL') { continue }
+    if (-not $willRank.ContainsKey($kv.Key)) { continue }
+    $labelCounts[$kv.Value] = ($labelCounts[$kv.Value] + 1)
+  }
+  foreach ($kv in $rawLabels.GetEnumerator()) {
+    if (-not $willRank.ContainsKey($kv.Key)) { continue }
+    if ($labelCounts.ContainsKey($kv.Value) -and $labelCounts[$kv.Value] -ge 2) { $groupLabelMap[$kv.Key] = $kv.Value }
+  }
+  Write-Output "  pool_groups.csv: $($rawLabels.Count) pools labelled, $($groupLabelMap.Count) shown (2+ ranked pools sharing a non-SINGLEPOOL label)"
+}
+
+# 登録リレーの表記に関する注記（例: httpスキーム付き）。判定ではなく事実の記録で、採点には使わない。
+$relayNoteMap = @{}
+$notesPath = Join-Path $SrcDir 'relay_notes.csv'
+if (Test-Path $notesPath) {
+  foreach ($n in (Import-Csv $notesPath)) {
+    if (-not $n.pool_bech32) { continue }
+    if (-not $relayNoteMap.ContainsKey($n.pool_bech32)) { $relayNoteMap[$n.pool_bech32] = @() }
+    $relayNoteMap[$n.pool_bech32] += [pscustomobject]@{ code = $n.note_code; value = $n.value }
+  }
+  Write-Output "  relay_notes.csv: $($relayNoteMap.Count) pools noted"
+}
+
 $ranked = foreach ($r in $rows) {
   $blocks = N $r.blocks_last_30_epochs
   $probed = N $r.endpoints_probed
@@ -86,7 +127,7 @@ $ranked = foreach ($r in $rows) {
   if ($r.ever_removed_all_relays -eq 't') { $issues += [pscustomobject]@{ code='REMOVED_ALL' } }
   if ($null -ne $rtt -and $rtt -gt 1000) { $issues += [pscustomobject]@{ code='RTT_HIGH'; a=[Math]::Round($rtt,1) } }
   $severity = if ($isForeign -or $atTip -eq 0 -or ($sharedIp -and $ipMap[$r.pool_bech32].maxPools -ge 10)) {'high'} elseif ($issues.Count -ge 2 -or $kesLinked -or $sharedIp) {'mid'} elseif ($issues.Count -eq 1) {'low'} else {'none'}
-  [pscustomobject]@{ ticker=$r.ticker; pool=$r.pool_bech32; score=[Math]::Round($reachScore+$redundancy+$independence+$ownership+$continuity+$latency,2); stake=[double]$r.stake_ada; delegators=[int]$r.delegators; blocks=[int]$blocks; entries=[int]$r.relay_entries; probed=[int]$probed; reachable=[int]$reachable; atTip=[int]$atTip; rtt=$rtt; shared=($r.shares_endpoint_with_other_pool -eq 't'); sharedIp=$sharedIp; sharedIpPools=$(if($sharedIp){$ipMap[$r.pool_bech32].maxPools}else{0}); ipKey=$(if($sharedIp){$ipMap[$r.pool_bech32].key}else{$null}); kesLinked=$kesLinked; kesCluster=$(if($kesLinked){$kesMap[$r.pool_bech32].id}else{$null}); kesClusterSize=$(if($kesLinked){$kesMap[$r.pool_bech32].size}else{0}); foreign=$isForeign; removedAll=($r.ever_removed_all_relays -eq 't'); issues=$issues; severity=$severity; checked=$r.last_checked; parts=[pscustomobject]@{reach=[Math]::Round($reachScore,2); redundancy=$redundancy; independence=$independence; ownership=$ownership; continuity=$continuity; latency=$latency} }
+  [pscustomobject]@{ ticker=$r.ticker; pool=$r.pool_bech32; score=[Math]::Round($reachScore+$redundancy+$independence+$ownership+$continuity+$latency,2); stake=[double]$r.stake_ada; delegators=[int]$r.delegators; blocks=[int]$blocks; entries=[int]$r.relay_entries; probed=[int]$probed; reachable=[int]$reachable; atTip=[int]$atTip; rtt=$rtt; shared=($r.shares_endpoint_with_other_pool -eq 't'); sharedIp=$sharedIp; sharedIpPools=$(if($sharedIp){$ipMap[$r.pool_bech32].maxPools}else{0}); ipKey=$(if($sharedIp){$ipMap[$r.pool_bech32].key}else{$null}); kesLinked=$kesLinked; kesCluster=$(if($kesLinked){$kesMap[$r.pool_bech32].id}else{$null}); kesClusterSize=$(if($kesLinked){$kesMap[$r.pool_bech32].size}else{0}); foreign=$isForeign; removedAll=($r.ever_removed_all_relays -eq 't'); issues=$issues; severity=$severity; checked=$r.last_checked; groupLabel=$(if($groupLabelMap.ContainsKey($r.pool_bech32)){$groupLabelMap[$r.pool_bech32]}else{$null}); relayNotes=$(if($relayNoteMap.ContainsKey($r.pool_bech32)){$relayNoteMap[$r.pool_bech32]}else{@()}); parts=[pscustomobject]@{reach=[Math]::Round($reachScore,2); redundancy=$redundancy; independence=$independence; ownership=$ownership; continuity=$continuity; latency=$latency} }
 }
 $ranked = @($ranked | Sort-Object @{e='score';Descending=$true}, @{e='reachable';Descending=$true}, @{e='rtt';Ascending=$true}, @{e='stake';Descending=$true})
 for ($i=0; $i -lt $ranked.Count; $i++) { $ranked[$i] | Add-Member rank ($i+1) }

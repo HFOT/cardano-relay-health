@@ -46,9 +46,24 @@ jobs:
 
       # Upstream dropped registers_foreign_infrastructure, so this axis is
       # checked against the chain directly. Koios is public and needs no key.
+      # This one affects scoring, so it hard-fails the build on a bad fetch
+      # rather than degrading gracefully like the two below it.
       - name: Detect borrowed bootstrap relays
         shell: powershell
         run: ./tools/fetch-foreign-infra.ps1 -OutDir data
+
+      # The two steps below are informational only - they add citations
+      # (a community pool-grouping database, a registration-formatting note)
+      # that never affect scoring. Both degrade gracefully on their own if
+      # Koios has a bad moment: today's page just publishes without that one
+      # citation, rather than failing the whole rebuild over it.
+      - name: Fetch pool_groups labels
+        shell: powershell
+        run: ./tools/fetch-pool-groups.ps1 -OutDir data
+
+      - name: Fetch relay registration notes
+        shell: powershell
+        run: ./tools/fetch-relay-notes.ps1 -OutDir data
 
       - name: Generate page
         shell: powershell
