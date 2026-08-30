@@ -446,6 +446,10 @@ en:{
  allGrades:'All',
  sorts:[['rank','Sort: highest score'],['scoreAsc','Sort: lowest score'],['rtt','Sort: fastest RTT'],
         ['stake','Sort: largest stake'],['blocks','Sort: most blocks'],['ticker','Sort: ticker (A→Z)']],
+ sortGroups:['Ranking','Measurements'],
+ sortMetrics:[['kesSize','Sort: largest KES cluster'],['ipSize','Sort: most pools on one IP'],
+        ['relays','Sort: most registered relays'],['hosts','Sort: most reachable hosts'],
+        ['atTip','Sort: most hosts at tip']],
  limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','Show all']],
  thPool:'Pool', thHealth:'Health', thStatus:'Status', thReach:'Reachable / At tip',
  thRtt:'Best RTT', thSignals:'Warning signals', thStake:'Stake / Blocks',
@@ -470,9 +474,6 @@ en:{
  umHitsSome:n=>n+' of these match your search',
  umAlsoHere:n=>' · '+n+' more below, in the section this page cannot measure',
  umOnly:n=>'No ranked pools match, but '+(n===1?'one is':n+' are')+' listed below, in the section this page cannot measure.',
- sortSig:{reach:'Sort: most hosts not answering', ip:'Sort: most pools on that IP',
-   kes:'Sort: largest KES cluster', tip:'Sort: most hosts behind tip',
-   redun:'Sort: fewest reachable hosts'},
  umNote:'The pools listed here are producing blocks. What is missing is material this page can measure, not something about the pools themselves. They are shown apart from the ranking to keep that distinction clear, not to place them above or below it.',
  umNone:'No pools here match the current search.',
  clTitle:'Changelog',
@@ -502,8 +503,8 @@ en:{
    w:'A pool detail now cites cardano-community/pool_groups when two or more currently-ranked pools share a label there - checked first against our own IP/KES-sharing detection, which found nothing that database did not already have. Separately, a registered relay address that includes a URL scheme (http://, https://) is now noted as a formatting detail, not a judgment - most likely a copied config template. Neither affects scoring, and both are our own independent fetch straight from the chain, skipped quietly if that fetch has a bad day.'},
   {d:'2026-08-30',t:'Pools that could not be measured are now named',
    w:'Pools that minted blocks but offered no address to probe were being dropped from the table without comment. Not being measurable is not the same as having a problem, so they are now listed in their own section - still unscored and unranked - and the search box finds them. The section states that blocks can be produced and propagated without a registered relay, and that the reasons for not registering one (limiting exposure to denial-of-service, privacy, a third-party relay service, ordinary configuration) cannot be told apart from outside the chain. Before building it, Koios was used to confirm that none of these pools is retiring and that none has relays registered today.'},
-  {d:'2026-08-30',t:'Signals can now be sorted, not just filtered',
-   w:'Clicking a vertex on the signal hexagon already narrowed the table to the pools carrying that signal, but the order stayed by score, so the largest cases were not necessarily near the top. The table is now ordered by how large that signal is for each pool - the number of pools on the same IP, the size of the KES cluster, how many hosts did not answer or were behind tip, how few hosts were reachable - and the sort menu shows the option so it can be changed back. Shared endpoint is the one exception: the source carries it as a yes/no with no count, so there is nothing to order it by.'}
+  {d:'2026-08-30',t:'The table can be ordered by measurement, not only by score',
+   w:'Every sort option was a verdict of some kind - highest score, lowest score, fastest RTT. The sort menu now has a second group holding the measurements themselves: KES cluster size, pools sharing one IP, registered relays, reachable hosts, hosts at tip. These order the whole table by quantity rather than by better or worse, which makes it possible to read the shape of the network - how large the biggest clusters are, how many pools sit on one address - without treating either end as a ranking. Clicking a vertex on the signal hexagon now switches to the matching measurement, so filtering and ordering stay separate things.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -694,6 +695,10 @@ ja:{
  allGrades:'すべて',
  sorts:[['rank','並び順：スコアが高い順'],['scoreAsc','並び順：スコアが低い順'],['rtt','並び順：RTTが速い順'],
         ['stake','並び順：Stakeが多い順'],['blocks','並び順：Blocksが多い順'],['ticker','並び順：Ticker（A→Z）']],
+ sortGroups:['順位','測定値'],
+ sortMetrics:[['kesSize','並び順：KESクラスターが大きい順'],['ipSize','並び順：同じIPのプールが多い順'],
+        ['relays','並び順：登録リレーが多い順'],['hosts','並び順：到達ホストが多い順'],
+        ['atTip','並び順：Tip同期ホストが多い順']],
  limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','すべて表示']],
  thPool:'Pool', thHealth:'Health', thStatus:'ステータス', thReach:'到達 / Tip同期',
  thRtt:'Best RTT', thSignals:'注意シグナル', thStake:'Stake / Blocks',
@@ -718,9 +723,6 @@ ja:{
  umHitsSome:n=>'このうち '+n+' 件が検索に一致します',
  umAlsoHere:n=>' · ほかに '+n+' 件が下の「測定できないプール」の枠にあります',
  umOnly:n=>'ランキングに該当はありませんが、下の「測定できないプール」の枠に '+n+' 件あります。',
- sortSig:{reach:'並び順：応答がないホストが多い順', ip:'並び順：同じIPのプールが多い順',
-   kes:'並び順：KESクラスターが大きい順', tip:'並び順：Tip遅れのホストが多い順',
-   redun:'並び順：到達ホストが少ない順'},
  umNote:'ここに挙げたプールはブロックを生成しています。欠けているのは、このページが測定できる材料のほうです。ランキングとは別に表記しているのはその区別のためであり、優劣をつけるものではありません。',
  umNone:'この枠には現在の検索に一致するプールがありません。',
  clTitle:'更新履歴',
@@ -750,8 +752,8 @@ ja:{
    w:'ランキング内の2プール以上が同じラベルを持つ場合、cardano-community/pool_groups の分類を詳細パネルに引用するようにした。先に我々自身のIP/KES共有検出と突き合わせ、そちら側の独自発見は無かったことを確認済み。別途、登録リレーアドレスにURLスキーム（http://・https://）が含まれる場合も、判断ではなく表記上の特徴として記録するようにした（設定テンプレートのコピー残りである可能性が高い）。どちらも採点には影響せず、チェーンから独自に取得している情報。取得に失敗した日は静かに省かれる。'},
   {d:'2026-08-30',t:'測定できなかったプールを明示するようにした',
    w:'ブロックを生成しているのにプローブする宛先が見つからず、6軸のどれも測れなかったプールを、これまでは何も言わずに表から落としていた。測れないことと問題があることは別なので、採点も順位付けもしないまま別枠に掲載し、検索でも引けるようにした。登録されたリレーがなくてもブロックの生成と伝播は可能であること、登録しない理由（サービス拒否攻撃への露出を抑える、プライバシー、第三者のリレーサービスの利用、設定上の理由）はチェーンの外側から区別できないことを、枠の説明に明記している。実装前に、該当プールがチェーン上で引退手続き中でないこと、および現在も登録がないことをKoiosで確認した。'},
-  {d:'2026-08-30',t:'シグナルを並べ替えられるようにした',
-   w:'シグナル六角形の頂点を押すと、そのシグナルを持つプールに絞り込めるようになっていたが、並び順はスコア順のままで、規模の大きいものが上に来るとは限らなかった。絞り込むと同時に、そのシグナルが大きい順（同じIPを共有するプール数、KESクラスターの大きさ、応答がなかったホスト数、Tip遅れのホスト数、到達ホストの少なさ）で並ぶようにした。並び順のメニューにも項目として出るので、元に戻すこともできる。endpoint共有だけは元データが有無のみで件数を持たないため、並べ替えの対象にしていない。'}
+  {d:'2026-08-30',t:'測定値そのもので並べ替えられるようにした',
+   w:'並び順はどれも何らかの評価だった（スコアが高い順、低い順、RTTが速い順）。メニューに「測定値」の群を追加し、KESクラスターの大きさ、同じIPを共有するプール数、登録リレー数、到達ホスト数、Tip同期ホスト数で並べられるようにした。良し悪しではなく量として全体を並べるので、最大のクラスターがどれくらいか、1つのアドレスに何プールが乗っているかといったネットワークの形を、どちらかの端を順位として扱わずに読める。シグナル六角形の頂点を押したときは対応する測定値に切り替わるようにし、絞り込みと並び順を別のものとして扱うようにした。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -938,16 +940,16 @@ function stateOf(x){
   return 'active';
 }
 const AXES=[['reach',35],['redundancy',15],['independence',25],['ownership',10],['continuity',10],['latency',5]];
-// mag は「そのシグナルがどれだけ大きいか」。頂点で絞り込んだとき、この値の
-// 大きい順に並べる。redun だけは到達ホストが少ないほど強いシグナルなので符号を反転する。
-// ep（endpoint共有）は上流が真偽値だけで件数を持たないため mag がない＝並べ替えを出さない。
+// sort は、その頂点で絞り込んだときに選ばれる測定値の軸。並び順メニューに常設して
+// いる項目そのものなので、絞り込みとは独立に使える。ep（endpoint共有）だけは上流が
+// 真偽値で件数を持たず、対応する測定値がないため並び順は触らない。
 const SIGNALS=[
-  {k:'reach',test:x=>x.reachable<x.probed,          mag:x=>x.probed-x.reachable},
-  {k:'ip'   ,test:x=>!!x.sharedIp,                  mag:x=>x.sharedIpPools||0},
-  {k:'kes'  ,test:x=>!!x.kesLinked,                 mag:x=>x.kesClusterSize||0},
-  {k:'tip'  ,test:x=>x.atTip<x.reachable||x.atTip===0, mag:x=>x.reachable-x.atTip},
+  {k:'reach',test:x=>x.reachable<x.probed,             sort:'hosts'},
+  {k:'ip'   ,test:x=>!!x.sharedIp,                     sort:'ipSize'},
+  {k:'kes'  ,test:x=>!!x.kesLinked,                    sort:'kesSize'},
+  {k:'tip'  ,test:x=>x.atTip<x.reachable||x.atTip===0, sort:'atTip'},
   {k:'ep'   ,test:x=>!!x.shared},
-  {k:'redun',test:x=>x.reachable<=2,                mag:x=>-x.reachable}
+  {k:'redun',test:x=>x.reachable<=2,                   sort:'hosts'}
 ];
 
 data.forEach(x=>{
@@ -1166,10 +1168,13 @@ const SORTS={
   stake:(a,b)=>b.stake-a.stake||a.rank-b.rank,
   blocks:(a,b)=>b.blocks-a.blocks||a.rank-b.rank,
   ticker:(a,b)=>(a.ticker||'￿').localeCompare(b.ticker||'￿')||a.rank-b.rank,
-  // 絞り込み中のシグナルの大きい順。同数ならスコア順に落ち着かせる。
-  sigMag:(a,b)=>{const s=signal&&SIGNALS.find(z=>z.k===signal);
-    if(!s||!s.mag)return a.rank-b.rank;
-    return s.mag(b)-s.mag(a)||a.rank-b.rank;}
+  // 測定値そのものを軸にした並び順。良し悪しではなく量として全プールを並べる。
+  // 同数はスコア順に落ち着かせる。
+  kesSize:(a,b)=>(b.kesClusterSize||0)-(a.kesClusterSize||0)||a.rank-b.rank,
+  ipSize: (a,b)=>(b.sharedIpPools||0)-(a.sharedIpPools||0)||a.rank-b.rank,
+  relays: (a,b)=>(b.entries||0)-(a.entries||0)||a.rank-b.rank,
+  hosts:  (a,b)=>(b.reachable||0)-(a.reachable||0)||a.rank-b.rank,
+  atTip:  (a,b)=>(b.atTip||0)-(a.atTip||0)||a.rank-b.rank
 };
 
 /* ==================== state ==================== */
@@ -1272,22 +1277,22 @@ function syncChips(){
   sigBox.classList.toggle('on',!!sig);
   if(sig)sigLabel.textContent=T().sigFilterLabel+T().signals[sig.k];
 }
-// シグナルで絞り込んでいる間だけ「その項目が多い順」を並び順に足す。
-// 6項目のうち endpoint 共有だけは件数が取れないので、その場合は足さない。
+// 並び順は「順位」と「測定値」の2群。測定値の軸は絞り込みと独立に常設する。
 function syncSorts(keep){
-  const t=T(),s=signal&&SIGNALS.find(z=>z.k===signal);
-  const extra=(s&&s.mag)?[['sigMag',t.sortSig[signal]]]:[];
-  sortSel.innerHTML=extra.concat(t.sorts).map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('');
-  const want=keep!==undefined?keep:sortSel.value;
-  sortSel.value=want;
-  if(!sortSel.value)sortSel.value='rank';   // sigMag が消えた直後は既定に戻す
+  const t=T();
+  const grp=(label,rows)=>'<optgroup label="'+esc(label)+'">'+
+    rows.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('')+'</optgroup>';
+  sortSel.innerHTML=grp(t.sortGroups[0],t.sorts)+grp(t.sortGroups[1],t.sortMetrics);
+  sortSel.value=keep!==undefined?keep:sortSel.value;
+  if(!sortSel.value)sortSel.value='rank';
 }
 function setGrade(g){grade=g;group=null;syncChips();render();}
-// 頂点を押したら、その項目の多い順で並べる。数えられない項目のときは並び順を触らない。
+// 頂点を押したら、その項目に対応する測定値の軸に切り替える。対応する測定値がない
+// endpoint 共有のときは、いま選ばれている並び順をそのまま残す。
 function setSignal(k){
   signal=k;group=null;syncChips();
   const s=k&&SIGNALS.find(z=>z.k===k);
-  syncSorts((s&&s.mag)?'sigMag':(sortSel.value==='sigMag'?'rank':sortSel.value));
+  if(s&&s.sort)sortSel.value=s.sort;
   render();
 }
 // グループを開くときは他の絞り込みを解除する。狙いは「その仲間を全部見る」なので。
@@ -1295,7 +1300,7 @@ function setGroup(g){
   // 「その仲間を全部見る」が狙いなので、絞り込みは検索語も含めて解除する。
   // 検索して見つけた行から押すと、その語でグループが1件に潰れてしまうため。
   group=g;grade='all';signal=null;q.value='';openSet.clear();
-  syncChips();syncSorts(sortSel.value==='sigMag'?'rank':sortSel.value);render();
+  syncChips();render();
   document.querySelector('.rankhead').scrollIntoView({block:'start'});}
 
 /* ==================== language application ==================== */
