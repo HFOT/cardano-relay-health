@@ -66,9 +66,9 @@ foreach ($r in $rows) {
   if ($r.minted_last_30_epochs -eq 't' -and (N $r.blocks_last_30_epochs) -gt 0 -and (N $r.endpoints_probed) -gt 0) { $willRank[$r.pool_bech32] = $true }
 }
 $groupLabelMap = @{}
+$rawLabels = @{}
 $groupsPath = Join-Path $SrcDir 'pool_groups.csv'
 if (Test-Path $groupsPath) {
-  $rawLabels = @{}
   foreach ($g in (Import-Csv $groupsPath)) { if ($g.pool_bech32 -and $g.group_label) { $rawLabels[$g.pool_bech32] = $g.group_label } }
   $labelCounts = @{}
   foreach ($kv in $rawLabels.GetEnumerator()) {
@@ -133,6 +133,48 @@ $ranked = @($ranked | Sort-Object @{e='score';Descending=$true}, @{e='reachable'
 for ($i=0; $i -lt $ranked.Count; $i++) { $ranked[$i] | Add-Member rank ($i+1) }
 $json = $ranked | ConvertTo-Json -Depth 6 -Compress
 
+# --- このページでは測定できないプール ---------------------------------------
+# ブロックは作っているのに endpoints_probed が 0 のプール。ほぼすべては
+# チェーン上にリレーが1件も登録されていない状態で、プローブする宛先が存在
+# しないため6軸のどれも測れない。測れないことと問題があることは別なので、
+# 採点も順位付けもせず、測れないという事実だけを別枠に出す。
+# 登録しない理由（DoS露出を抑える、プライバシー、第三者のリレーサービス、
+# 設定上の理由）はチェーンの外側からは区別できない。表示側の文章もその前提で書く。
+$unmeasured = foreach ($r in $rows) {
+  if ($r.minted_last_30_epochs -ne 't' -or (N $r.blocks_last_30_epochs) -le 0) { continue }
+  if ((N $r.endpoints_probed) -gt 0) { continue }
+  $entries = [int](N $r.relay_entries)
+  # 登録はあるのにプローブされていない場合は理由が違うので、コードを分けて表示側に委ねる
+  $reason = if ($entries -eq 0) { 'NO_RELAY' } else { 'NOT_PROBED' }
+  $removedOn = if ([string]::IsNullOrWhiteSpace($r.removed_all_relays_on)) { $null } else { ($r.removed_all_relays_on -split ' ')[0] }
+  [pscustomobject]@{
+    ticker = $r.ticker; pool = $r.pool_bech32; reason = $reason; entries = $entries
+    stake = [double]$r.stake_ada; delegators = [int]$r.delegators; blocks = [int](N $r.blocks_last_30_epochs)
+    # 「一度も登録していない」と「登録していたが今はない」は観測できる違い。優劣ではなく履歴の差として出す。
+    removedOn = $removedOn
+    everRegistered = ($null -ne $removedOn) -or ((N $r.relay_additions) -gt 0)
+    groupLabel = $null
+  }
+}
+$unmeasured = @($unmeasured | Sort-Object @{e='stake';Descending=$true})
+
+# pool_groups の引用はランキング側と同じ条件で行う。この枠のなかに同じラベルの
+# 相手が2件以上いるときだけ出す。1件だけ出しても比較のしようがなく情報量がない。
+$umLabelCounts = @{}
+foreach ($u in $unmeasured) {
+  $lab = $rawLabels[$u.pool]
+  if (-not $lab -or $lab -eq 'SINGLEPOOL') { continue }
+  $umLabelCounts[$lab] = ($umLabelCounts[$lab] + 1)
+}
+foreach ($u in $unmeasured) {
+  $lab = $rawLabels[$u.pool]
+  if ($lab -and $umLabelCounts.ContainsKey($lab) -and $umLabelCounts[$lab] -ge 2) { $u.groupLabel = $lab }
+}
+$unmeasuredJson = ConvertTo-Json -InputObject $unmeasured -Depth 4 -Compress
+if (-not $unmeasuredJson) { $unmeasuredJson = '[]' }
+if ($unmeasuredJson -notmatch '^\[') { $unmeasuredJson = "[$unmeasuredJson]" }
+Write-Output "  unmeasured: $($unmeasured.Count) pools minted blocks but could not be probed"
+
 # --- グループ実体 ---------------------------------------------------------
 # プールの pill は「x N」と元データ上の全メンバー数を出す。押したときに N 件
 # そのまま並ぶよう、ランキング対象外のプールも含めた実メンバーを持たせる。
@@ -167,7 +209,7 @@ $checked = ($ranked | Where-Object checked | Select-Object -First 1).checked
 
 # 表示部は work\template.html が単一ソース。__DATA__ と __CHECKED__ だけ差し込む。
 $html = [IO.File]::ReadAllText($tpl, [Text.UTF8Encoding]::new($false))
-$html = $html.Replace('__DATA__',$json).Replace('__GROUPS__',$groupsJson).Replace('__CHECKED__',$checked)
+$html = $html.Replace('__DATA__',$json).Replace('__GROUPS__',$groupsJson).Replace('__UNMEASURED__',$unmeasuredJson).Replace('__CHECKED__',$checked)
 # -OutFile may be a bare filename, in which case Split-Path yields ''.
 $out = [IO.Path]::GetFullPath((Join-Path (Get-Location).Path $out))
 $outDir = Split-Path $out -Parent

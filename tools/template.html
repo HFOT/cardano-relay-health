@@ -352,6 +352,22 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
 </div>
 <p class="context" data-i18n="tableNote"></p>
 
+<section id="umsection">
+<h2 data-i18n="umTitle"></h2>
+<p class="lead" id="umlead"></p>
+<p class="context" id="umwhy" data-i18n="umWhy"></p>
+<div class="tablebox"><table>
+  <thead><tr>
+    <th data-i18n="umThPool"></th>
+    <th style="width:210px" data-i18n="umThHistory"></th>
+    <th style="width:170px" data-i18n="umThBlocks"></th>
+    <th style="width:190px" data-i18n="umThStake"></th>
+  </tr></thead>
+  <tbody id="umbody"></tbody>
+</table></div>
+<p class="context" data-i18n="umNote"></p>
+</section>
+
 <h2 data-i18n="riskTitle"></h2>
 <p class="lead" data-i18n="riskLead"></p>
 <div class="tablebox" id="reftable"><table>
@@ -388,6 +404,9 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
 <script>
 const data=__DATA__;
 const GROUPS=__GROUPS__;
+// ブロックは作っているのにプローブ先が見つからず、6軸のどれも測れなかったプール。
+// 採点も順位付けもしない。measured の外側にあるという事実だけを別枠で出す。
+const UNMEASURED=__UNMEASURED__;
 
 /* ==================== i18n ==================== */
 const I18N={
@@ -440,6 +459,19 @@ en:{
  grpUnranked:'not in the ranking - minted no blocks recently, or was not probed',
  grpHint:(n,ranked)=>'All '+n+' pools sharing this'+(ranked<n?', including '+(n-ranked)+' outside the ranking':'')+'. Click a row for details.',
  backToRanking:'\u2190 Back to the ranking',
+ umTitle:'Pools this page cannot measure',
+ umLead:n=>'These '+n+' pools minted blocks in the last 30 epochs, but this page found no address to probe, so none of the six axes could be measured. They are not scored and not ranked. Their absence from the table above is a limit of how this page measures, not a finding about them.',
+ umWhy:'A registered relay is how other nodes find a pool. Blocks can still be produced and propagated without one, and these pools are producing them. Some operators leave relays unregistered on purpose — to limit exposure to denial-of-service, or for privacy. Others use a third-party relay service registered under a different name, and there are ordinary configuration reasons too. From outside the chain these cannot be told apart, so nothing here should be read as a fault.',
+ umThPool:'Pool', umThHistory:'Registration history', umThBlocks:'Blocks (30 epochs)', umThStake:'Stake',
+ umReason:{NO_RELAY:'No relay registered', NOT_PROBED:'Registered, not probed'},
+ umNever:'No relay has been registered',
+ umRemoved:d=>'Relays were registered before; none since '+d,
+ umWas:'Relays were registered at some earlier point',
+ umHitsSome:n=>n+' of these match your search',
+ umAlsoHere:n=>' · '+n+' more below, in the section this page cannot measure',
+ umOnly:n=>'No ranked pools match, but '+(n===1?'one is':n+' are')+' listed below, in the section this page cannot measure.',
+ umNote:'The pools listed here are producing blocks. What is missing is material this page can measure, not something about the pools themselves. They are shown apart from the ranking to keep that distinction clear, not to place them above or below it.',
+ umNone:'No pools here match the current search.',
  clTitle:'Changelog',
  clNote:'The data itself refreshes through the daily automatic rebuild and is not listed here. This is the history of the page: what changed, and why.',
  changelog:[
@@ -464,7 +496,9 @@ en:{
   {d:'2026-08-28',t:'Registration separated from ownership',
    w:'A certificate can list any address, and the chain cannot verify who holds it. The guide now describes what was registered rather than what a pool owns, and the page states both limits: not every relay is registered, and a registered address is not guaranteed to belong to the pool. Raised by a reader.'},
   {d:'2026-08-30',t:'Two citations added: pool_groups and relay registration notes',
-   w:'A pool detail now cites cardano-community/pool_groups when two or more currently-ranked pools share a label there - checked first against our own IP/KES-sharing detection, which found nothing that database did not already have. Separately, a registered relay address that includes a URL scheme (http://, https://) is now noted as a formatting detail, not a judgment - most likely a copied config template. Neither affects scoring, and both are our own independent fetch straight from the chain, skipped quietly if that fetch has a bad day.'}
+   w:'A pool detail now cites cardano-community/pool_groups when two or more currently-ranked pools share a label there - checked first against our own IP/KES-sharing detection, which found nothing that database did not already have. Separately, a registered relay address that includes a URL scheme (http://, https://) is now noted as a formatting detail, not a judgment - most likely a copied config template. Neither affects scoring, and both are our own independent fetch straight from the chain, skipped quietly if that fetch has a bad day.'},
+  {d:'2026-08-30',t:'Pools that could not be measured are now named',
+   w:'Pools that minted blocks but offered no address to probe were being dropped from the table without comment. Not being measurable is not the same as having a problem, so they are now listed in their own section - still unscored and unranked - and the search box finds them. The section states that blocks can be produced and propagated without a registered relay, and that the reasons for not registering one (limiting exposure to denial-of-service, privacy, a third-party relay service, ordinary configuration) cannot be told apart from outside the chain. Before building it, Koios was used to confirm that none of these pools is retiring and that none has relays registered today.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -668,6 +702,19 @@ ja:{
  grpUnranked:'ランキング対象外（直近のブロック生成なし、またはプローブ対象外）',
  grpHint:(n,ranked)=>'これを共有する'+n+'プールすべて'+(ranked<n?'（うち'+(n-ranked)+'件はランキング対象外）':'')+'。行をクリックすると詳細が開きます。',
  backToRanking:'\u2190 ランキングに戻る',
+ umTitle:'このページでは測定できないプール',
+ umLead:n=>'以下の '+n+' プールは直近30エポックでブロックを生成していますが、プローブする宛先を見つけられなかったため、6軸のいずれも測定できませんでした。採点も順位付けもしていません。上の表に出てこないのは、このページの測り方の限界であって、これらのプールについて何かが分かったということではありません。',
+ umWhy:'登録されたリレーは、他のノードがそのプールを見つけるための情報です。登録がなくてもブロックの生成と伝播は可能で、これらのプールは実際に生成しています。サービス拒否攻撃への露出を抑えるため、あるいはプライバシーのために、意図的に登録しない運用者もいると思われます。第三者のリレーサービスを別名義で使っている場合や、設定上の理由もあります。チェーンの外側からはこれらを区別できないため、ここに掲載されていることを欠陥として読むべきではありません。',
+ umThPool:'プール', umThHistory:'登録の履歴', umThBlocks:'ブロック（30エポック）', umThStake:'ステーク',
+ umReason:{NO_RELAY:'リレー登録なし', NOT_PROBED:'登録あり・プローブ対象外'},
+ umNever:'リレーが登録されたことはありません',
+ umRemoved:d=>'以前は登録がありましたが、'+d+' 以降はありません',
+ umWas:'過去のどこかで登録されていた記録があります',
+ umHitsSome:n=>'このうち '+n+' 件が検索に一致します',
+ umAlsoHere:n=>' · ほかに '+n+' 件が下の「測定できないプール」の枠にあります',
+ umOnly:n=>'ランキングに該当はありませんが、下の「測定できないプール」の枠に '+n+' 件あります。',
+ umNote:'ここに挙げたプールはブロックを生成しています。欠けているのは、このページが測定できる材料のほうです。ランキングとは別に表記しているのはその区別のためであり、優劣をつけるものではありません。',
+ umNone:'この枠には現在の検索に一致するプールがありません。',
  clTitle:'更新履歴',
  clNote:'データそのものは毎日の自動更新で入れ替わるため、ここには載せていません。これはページ自体の履歴です（何を・なぜ変えたか）。',
  changelog:[
@@ -692,7 +739,9 @@ ja:{
   {d:'2026-08-28',t:'「登録」と「所有」を区別',
    w:'証明書には任意のアドレスを書くことができ、その持ち主をチェーン上で確かめる方法はない。解説を「何を登録しているか」の記述に統一し、注意書きに2つの限界（登録されないリレーがある／登録されたアドレスが本人のものとは限らない）を明記した。利用者の指摘がきっかけ。'},
   {d:'2026-08-30',t:'2つの引用を追加：pool_groups と登録リレーの表記メモ',
-   w:'ランキング内の2プール以上が同じラベルを持つ場合、cardano-community/pool_groups の分類を詳細パネルに引用するようにした。先に我々自身のIP/KES共有検出と突き合わせ、そちら側の独自発見は無かったことを確認済み。別途、登録リレーアドレスにURLスキーム（http://・https://）が含まれる場合も、判断ではなく表記上の特徴として記録するようにした（設定テンプレートのコピー残りである可能性が高い）。どちらも採点には影響せず、チェーンから独自に取得している情報。取得に失敗した日は静かに省かれる。'}
+   w:'ランキング内の2プール以上が同じラベルを持つ場合、cardano-community/pool_groups の分類を詳細パネルに引用するようにした。先に我々自身のIP/KES共有検出と突き合わせ、そちら側の独自発見は無かったことを確認済み。別途、登録リレーアドレスにURLスキーム（http://・https://）が含まれる場合も、判断ではなく表記上の特徴として記録するようにした（設定テンプレートのコピー残りである可能性が高い）。どちらも採点には影響せず、チェーンから独自に取得している情報。取得に失敗した日は静かに省かれる。'},
+  {d:'2026-08-30',t:'測定できなかったプールを明示するようにした',
+   w:'ブロックを生成しているのにプローブする宛先が見つからず、6軸のどれも測れなかったプールを、これまでは何も言わずに表から落としていた。測れないことと問題があることは別なので、採点も順位付けもしないまま別枠に掲載し、検索でも引けるようにした。登録されたリレーがなくてもブロックの生成と伝播は可能であること、登録しない理由（サービス拒否攻撃への露出を抑える、プライバシー、第三者のリレーサービスの利用、設定上の理由）はチェーンの外側から区別できないことを、枠の説明に明記している。実装前に、該当プールがチェーン上で引退手続き中でないこと、および現在も登録がないことをKoiosで確認した。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1111,7 +1160,8 @@ const body=document.querySelector('#body'),q=document.querySelector('#q'),
       limit=document.querySelector('#limit'),sortSel=document.querySelector('#sort'),
       hint=document.querySelector('#hint'),chips=document.querySelector('#chips'),
       dist=document.querySelector('#dist'),sigBox=document.querySelector('#sigfilter'),
-      sigLabel=document.querySelector('#sigfilterlabel'),langsw=document.querySelector('#langsw');
+      sigLabel=document.querySelector('#sigfilterlabel'),langsw=document.querySelector('#langsw'),
+      umbody=document.querySelector('#umbody');
 let grade='all',signal=null,group=null;
 const openSet=new Set();
 
@@ -1145,18 +1195,56 @@ function renderGroup(){
   body.innerHTML=list.map(o=>o.x?rowHtml(o.x):unrankedRow(o.u)).join('');
 }
 
+// 測れなかったプールも検索で引けるようにする。委任先を調べた人が空振りするのが
+// 一番不親切なので、ランキングに出てこないときは下の枠に何件あるかを示す。
+function matchesQuery(o,s){
+  return !s||(o.ticker||'').toLowerCase().indexOf(s)>=0||o.pool.toLowerCase().indexOf(s)>=0;
+}
+function umHistory(u){
+  const t=T();
+  if(u.removedOn)return t.umRemoved(u.removedOn);
+  if(u.everRegistered)return t.umWas;
+  return t.umNever;
+}
+function renderUnmeasured(s){
+  const t=T(),sec=document.querySelector('#umsection');
+  // 該当が1件もない日は枠ごと出さない。空の見出しだけが残るほうが分かりにくい。
+  sec.hidden=!UNMEASURED.length;
+  if(!UNMEASURED.length)return 0;
+  const hits=UNMEASURED.filter(u=>matchesQuery(u,s));
+  document.querySelector('#umlead').textContent=t.umLead(UNMEASURED.length);
+  umbody.innerHTML=hits.length?hits.map(u=>
+    '<tr class="row unranked">'+
+      '<td><div class="ticker" style="color:var(--muted)">'+esc(u.ticker||t.noTicker)+'</div>'+
+        '<div class="poolid" title="'+esc(u.pool)+'">'+esc(u.pool)+'</div>'+
+        '<div class="sub">'+esc(t.umReason[u.reason]||u.reason)+'</div>'+
+        (u.groupLabel?('<p class="cite">'+t.dGroupLabel(u.groupLabel)+'</p>'):'')+'</td>'+
+      '<td><span class="sub">'+esc(umHistory(u))+'</span></td>'+
+      '<td class="num"><b>'+fmt(u.blocks)+'</b></td>'+
+      '<td class="num"><div>'+fmt(u.stake)+' <span class="sub">₳</span></div>'+
+        '<div class="sub">'+fmt(u.delegators)+' '+esc(t.delegWord)+'</div></td>'+
+    '</tr>').join('')
+    :'<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--dim)">'+esc(t.umNone)+'</td></tr>';
+  return hits.length;
+}
+
 function render(){
   document.querySelector('#backrank').hidden=!group;
+  const s=q.value.trim().toLowerCase();
+  const umHits=renderUnmeasured(s);
   if(group){renderGroup();return;}
   document.querySelector('#ranktitle').textContent=T().rankingTitle;
-  const s=q.value.trim().toLowerCase(),max=+limit.value;
+  const max=+limit.value;
   const sig=signal?SIGNALS.find(z=>z.k===signal):null;
   const hits=data.filter(x=>
-    (grade==='all'||x.grade===grade)&&(!sig||sig.test(x))&&
-    (!s||(x.ticker||'').toLowerCase().indexOf(s)>=0||x.pool.toLowerCase().indexOf(s)>=0)
+    (grade==='all'||x.grade===grade)&&(!sig||sig.test(x))&&matchesQuery(x,s)
   ).sort(SORTS[sortSel.value]);
   const rows=hits.slice(0,max);
-  hint.textContent=hits.length?T().hitsSome(hits.length,hits.length>rows.length?rows.length:0):T().hitsNone;
+  // 検索語がある間だけ、測れなかった枠の該当件数も添える。
+  // ランキング側が0件のときは「ほかに」ではなく、そちらに在ることだけを伝える。
+  hint.textContent=
+    hits.length?T().hitsSome(hits.length,hits.length>rows.length?rows.length:0)+((s&&umHits)?T().umAlsoHere(umHits):'')
+    :(s&&umHits)?T().umOnly(umHits):T().hitsNone;
   body.innerHTML=rows.map(rowHtml).join('')||
     '<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--dim)">—</td></tr>';
 }

@@ -24,9 +24,13 @@ $required = [ordered]@{
   'relay_shared_hosts.csv' = @('resolved_ip','target_port','pools','pool_bech32s')
   'pool_operator_kes_members.csv' = @('cluster_id','pool_bech32')
 }
-# Present 2026-08-27 23:01 UTC, gone again by the 03:38 sweep the next morning.
+# registers_foreign_infrastructure: present 2026-08-27 23:01 UTC, gone again by
+# the 03:38 sweep the next morning.
+# relay_additions / removed_all_relays_on: only add detail to the "cannot be
+# measured" section. Without them that section still lists the same pools, it
+# just stops saying whether a pool ever had relays registered before.
 $optional = [ordered]@{
-  'relay_pool_health.csv' = @('registers_foreign_infrastructure')
+  'relay_pool_health.csv' = @('registers_foreign_infrastructure','relay_additions','removed_all_relays_on')
 }
 
 $missingRequired = @()
