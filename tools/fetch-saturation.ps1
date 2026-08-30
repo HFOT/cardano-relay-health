@@ -1,30 +1,45 @@
 <#
   Writes the current saturation point to <OutDir>/network_params.csv.
 
-  A pool is saturated once its stake passes the saturation point. Past it,
-  further delegation earns proportionally less, so it is worth showing next to
-  the stake - but it says nothing about how the pool is run, so it is display
-  only and never scored. Stake concentration is already in the "reference only,
-  never deducted" list.
+  THE PROTOCOL RULE, implemented literally:
 
-  The point is (maxLovelaceSupply - reserves) / k:
+      z0              = 1 / k                       (relative saturation size)
+      total stake     = maxLovelaceSupply - reserves
+      saturation      = total stake * z0
+                      = (maxLovelaceSupply - reserves) / k
 
-    z0, the relative saturation size, is 1/k, and the ledger's sigma is a
-    fraction of the total supply. Koios reports that total as `supply` in
-    /totals, and it equals 45,000,000,000 ADA minus reserves exactly.
-    k is optimal_pool_count from /epoch_params, currently 500.
+  maxLovelaceSupply is a mainnet genesis constant, 45,000,000,000 ADA.
+  reserves is read from the chain (/totals). k is optimal_pool_count (nOpt)
+  from the current protocol parameters (/epoch_params).
 
-  Do NOT use `circulation` for this. It is `supply` minus the treasury and
-  deposits, which is ~5.5% smaller and produces a saturation point that is too
-  low - an error this script was written with and corrected after checking
-  against Koios's own live_saturation.
+  Sources for the rule:
+    - Cardano docs, Pledging and rewards: z0 is the relative pool saturation
+      size, and "z0, sigma and s are all relative, so they are fractions of
+      the total supply".
+    - The saturation cap is the maximum supply of ada (45bn) less whatever
+      remains in the reserve, divided by k.
 
-  That check is now part of the script: the computed point is verified against
-  live_stake / live_saturation for a sample of real pools, and the script fails
-  rather than writing a figure that disagrees. Getting this wrong would put a
-  visibly wrong line on every row, so it hard-fails instead of degrading.
+  This script computes the rule from its own terms rather than reading a
+  field named "supply" from an API, so that a change in what an API calls
+  things cannot silently change the figure. The API's own numbers are then
+  used to check the result, twice:
+
+    1. maxLovelaceSupply - reserves must equal the /totals `supply` field.
+    2. The computed point must agree with Koios's own live_saturation,
+       back-calculated from live_stake, across a sample of real pools.
+
+  Either check failing stops the run. A wrong saturation point draws a
+  visibly wrong line on every row, so this hard-fails rather than degrading.
   The caller may still carry on without the file - the page then shows stake
   with no saturation marker.
+
+  Do NOT use the /totals `circulation` field. That is the total supply less
+  the treasury, rewards and deposits - about 5.5% smaller - and it is not the
+  ledger quantity the rule refers to.
+
+  A pool past 100% earns no additional rewards, so further delegation to it is
+  diluted. That is a fact about rewards and says nothing about how the pool is
+  run, so this figure is display only and is never scored.
 #>
 param([string]$OutDir = 'data')
 $ErrorActionPreference = 'Stop'
@@ -34,21 +49,24 @@ $api = 'https://api.koios.rest/api/v1'
 $totals = Invoke-RestMethod -Uri "$api/totals?limit=1" -TimeoutSec 60
 $params = Invoke-RestMethod -Uri "$api/epoch_params?limit=1" -TimeoutSec 60
 
-$supplyAda   = [double]$totals[0].supply / 1000000
+# The rule, from its own terms.
+$MAX_LOVELACE_SUPPLY_ADA = 45000000000        # mainnet genesis constant
 $reservesAda = [double]$totals[0].reserves / 1000000
 $k           = [int]$params[0].optimal_pool_count
-if ($supplyAda -lt 1e9) { throw "supply looks wrong ($supplyAda ADA)" }
-if ($k -lt 1)           { throw "optimal_pool_count looks wrong ($k)" }
+if ($reservesAda -le 0)  { throw "reserves looks wrong ($reservesAda ADA)" }
+if ($k -lt 1)            { throw "optimal_pool_count (nOpt) looks wrong ($k)" }
 
-# supply should be maxLovelaceSupply (45B) minus reserves. If it is not, the basis has moved.
-$expected = 45000000000 - $reservesAda
-if ([Math]::Abs($supplyAda - $expected) / $expected -gt 0.0001) {
-  throw "supply ($supplyAda) is not 45B - reserves ($expected). The basis for saturation may have changed."
+$totalStake = $MAX_LOVELACE_SUPPLY_ADA - $reservesAda
+$z0         = 1.0 / $k
+$point      = $totalStake * $z0
+
+# Check 1: the quantity we just built must be what the chain reports as supply.
+$reportedSupply = [double]$totals[0].supply / 1000000
+if ([Math]::Abs($totalStake - $reportedSupply) / $reportedSupply -gt 0.0001) {
+  throw ("maxLovelaceSupply - reserves ({0:N0}) does not match the reported supply ({1:N0}). The basis for saturation may have changed." -f $totalStake, $reportedSupply)
 }
 
-$point = $supplyAda / $k
-
-# --- cross-check the figure against Koios's own live_saturation ---
+# Check 2: agree with Koios's own live_saturation on real pools.
 $ids = (Invoke-RestMethod -Uri "$api/pool_list?select=pool_id_bech32&limit=40" -TimeoutSec 60).pool_id_bech32
 $body = @{ _pool_bech32_ids = @($ids) } | ConvertTo-Json -Compress
 $info = Invoke-RestMethod -Uri "$api/pool_info" -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 90
@@ -75,11 +93,11 @@ if ($implied.Count -lt 3) {
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 [pscustomobject]@{
   epoch          = $totals[0].epoch_no
-  supply_ada     = [long]$supplyAda
+  total_stake_ada = [long]$totalStake
   reserves_ada   = [long]$reservesAda
   optimal_pools  = $k
   saturation_ada = [long]$point
 } | Export-Csv -NoTypeInformation -Encoding UTF8 (Join-Path $OutDir 'network_params.csv')
 
-Write-Output ("Epoch {0}: supply {1:N0} ADA / k={2} -> saturation {3:N0} ADA" -f `
-  $totals[0].epoch_no, $supplyAda, $k, $point)
+Write-Output ("Epoch {0}: (45,000,000,000 - {1:N0} reserves) / k={2} -> saturation {3:N0} ADA" -f `
+  $totals[0].epoch_no, $reservesAda, $k, $point)
