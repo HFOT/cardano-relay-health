@@ -226,7 +226,8 @@ tr.clurow:hover{background:rgba(var(--vRGB),.1)}
   background:rgba(255,255,255,.05);color:var(--muted);white-space:nowrap}
 .clbase.label{border-color:rgba(var(--vRGB),.55);color:var(--v2)}
 .clbase.kes{border-color:rgba(var(--cRGB),.5);color:var(--c)}
-.clsrc{font-size:11px;color:var(--dim);margin-top:3px}
+.clsrc{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.45}
+.clpart{color:var(--a)}
 .clbar{position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,.09);margin-top:5px;max-width:180px}
 .clbar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--v)}
 .clstate{font-weight:700}
@@ -619,8 +620,11 @@ en:{
    ip:'They resolve to the same address. One machine, or one thing in front of it, answers for all of them - so one outage takes the whole set. Shared hosting and NAT produce the same signal, so it is a correlation and not proof of one owner.'},
  clThGroup:'Group', clThPools:'Pools', clThEndpoints:'Endpoints', clThBlk:'Stops together', clThState:'Right now',
  clRanked:n=>n+' measured', clPerIp:' per endpoint',
+ clFrom:src=>'named by '+src,
+ clCover:(c,n)=>'('+c+' of '+n+' carry that name)',
+ clNoName:'no grouping database names this set',
  clRun:'All running', clPart:p=>p+'% not reached', clDown:'None reached',
- clNote2:'Groups are ordered by how much block production would stop at the same moment, not by anything about how they are run. Every group here is operating - the state column is what this snapshot saw. Endpoints is an upper bound: pools not detected as sharing an address are counted as having their own, which may still sit in one datacentre. Nothing here is scored.',
+ clNote2:'Names come from community-maintained grouping databases, cited per row - they are not registered on chain and are not our judgment. A set with no name there is shown by its KES cluster or shared address instead. Groups are ordered by how much block production would stop at the same moment, not by anything about how they are run. Every group here is operating - the state column is what this snapshot saw. Endpoints is an upper bound: pools not detected as sharing an address are counted as having their own, which may still sit in one datacentre. Nothing here is scored.',
  domTitle:(n,b)=>'This pool shares infrastructure with '+(n-1)+' others. If that shared point failed, all '+n+' would stop at once - together they produce '+b.toFixed(2)+'% of recent blocks. It is a description of scale, not a fault: the most concentrated groups measured here are currently among the most reliable. Never scored.',
  feeWord:'Fee',
  periods:[['m1','1M'],['m3','3M']],
@@ -708,7 +712,9 @@ en:{
   {d:'2026-08-31',t:'How much stops together, and who says these pools go together',
    w:'The signals column named which pools share infrastructure but never how much rides on it. A neutral figure now sits at the end of that column: if the shared point failed, this is the share of recent block production that would stop at the same moment. The largest failure domain carries 12.28% of blocks; the top ten together carry 41.1% from 18.7% of pools. It is sortable. It is not scored and it is not a warning - the most concentrated groups measured here are currently among the most reliable, so this describes scale, not fault. Separately, the group label now names which database it came from. Three answer this question through Koios and they do not always agree: one groups by operator where another groups by domain, so the same 25 pools can be a single label in one and seven in another. Presenting them as one voice was overstating the agreement.'},
   {d:'2026-08-31',t:'A second view: clusters, ordered by what stops together',
-   w:'Alongside the pool ranking there is now a cluster view - the same pools grouped into the units that would stop at the same moment, largest first. Each row says why it is one unit: same operator by a community database, KES keys rotating together, or one shared address. Those mean different things and the labels say which, since key rotation is a scheduled human job while a shared address is a machine. Many rows carry two or three at once. The same group appeared up to seven times through different addresses, so overlapping views are folded together and their reasons collected onto the one row that remains - 302 duplicates removed, 171 groups left. Every group listed is operating; the last column is what this snapshot saw, not a verdict. Nothing here is scored.'}
+   w:'Alongside the pool ranking there is now a cluster view - the same pools grouped into the units that would stop at the same moment, largest first. Each row says why it is one unit: same operator by a community database, KES keys rotating together, or one shared address. Those mean different things and the labels say which, since key rotation is a scheduled human job while a shared address is a machine. Many rows carry two or three at once. The same group appeared up to seven times through different addresses, so overlapping views are folded together and their reasons collected onto the one row that remains - 302 duplicates removed, 171 groups left. Every group listed is operating; the last column is what this snapshot saw, not a verdict. Nothing here is scored.'},
+  {d:'2026-08-31',t:'Clusters carry the name a database gives them, with the source',
+   w:'A cluster shown as kes:2 is not something a reader can look for. Where a grouping database names a set, that name is now used, and the row says which database gave it. Where none does, the KES cluster or the shared address is shown as before and the row says so rather than leaving it unexplained. 134 of 152 groups now carry a name; the 18 without account for 1.4% of block production between them. When a name covers only part of a set the row says how much - one group is 61 pools of which 50 carry the name - because the extra pools are in the same failure domain whether or not anyone has catalogued them. Merging was also wrong before: a label of 50 pools and a KES cluster of 55 sharing 44 between them were listed as two groups, since neither contains the other. Sets overlapping by half or more are now treated as one.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -929,8 +935,11 @@ ja:{
    ip:'同じアドレスに解決されます。1台のマシン、あるいはその手前の何か1つが全部の応答を返しているので、そこが落ちれば全体が止まります。共用ホスティングやNATでも同じ信号が出るため、相関であって同一所有の証明ではありません。'},
  clThGroup:'グループ', clThPools:'プール', clThEndpoints:'エンドポイント', clThBlk:'同時に止まる規模', clThState:'現在',
  clRanked:n=>n+'件を測定', clPerIp:'/箇所',
+ clFrom:src=>src+' による名称',
+ clCover:(c,n)=>'（'+n+'件中'+c+'件がこの名称）',
+ clNoName:'名寄せデータベースに該当なし',
  clRun:'全て稼働中', clPart:p=>p+'%が未到達', clDown:'全て未到達',
- clNote2:'並び順は「同時に止まるブロック生成の割合」であって、運営の良し悪しではありません。ここに並ぶグループはいずれも稼働しています。現在の列は、このスナップショットで見えた状態です。エンドポイント数は上限値で、共有と検出されなかったプールを各自1箇所として数えているため、同じデータセンターに同居している可能性は排除できていません。採点には一切使っていません。',
+ clNote2:'名称はコミュニティが運営する名寄せデータベース由来で、行ごとに出どころを明記しています。チェーン上に登録された情報ではなく、当ページの判断でもありません。該当が無い集団は、KESクラスターや共有アドレスをそのまま表示しています。並び順は「同時に止まるブロック生成の割合」であって、運営の良し悪しではありません。ここに並ぶグループはいずれも稼働しています。現在の列は、このスナップショットで見えた状態です。エンドポイント数は上限値で、共有と検出されなかったプールを各自1箇所として数えているため、同じデータセンターに同居している可能性は排除できていません。採点には一切使っていません。',
  domTitle:(n,b)=>'このプールは他の'+(n-1)+'プールと設備を共有しています。その共有点が落ちると'+n+'プールが同時に止まり、合わせて直近ブロックの'+b.toFixed(2)+'%を占めます。規模の記述であって欠陥ではありません。実測では、集中しているグループほど不調率はむしろ低く出ています。採点には使っていません。',
  feeWord:'手数料',
  periods:[['m1','1か月'],['m3','3か月']],
@@ -1018,7 +1027,9 @@ ja:{
   {d:'2026-08-31',t:'同時に止まる規模と、誰がそのグループ分けをしたのか',
    w:'注意シグナルの列は、どのプールが設備を共有しているかは示していたが、そこに何がどれだけ乗っているかは示していなかった。その共有点が落ちたとき同時に止まるブロック生成の割合を、列の末尾に中立の表示として置いた。最大の障害ドメインは全ブロックの12.28%を担い、上位10で41.1%（プール数では18.7%）になる。並べ替えの軸にも追加した。採点には使っておらず、注意シグナルでもない。実測では集中しているグループほど不調率はむしろ低いので、これは規模の記述であって欠陥の指摘ではない。あわせて、名寄せラベルがどのデータベース由来かを明記するようにした。Koios 経由で3つのDBがこの問いに答えていて、常に一致するわけではない。運営者単位でまとめるものとドメイン単位で分けるものがあり、同じ25プールが片方では1ラベル、もう片方では7ラベルに分かれる。3つを1つの声として出すのは、合意の度合いを実際より強く見せていた。'},
   {d:'2026-08-31',t:'2つめの表示：一緒に止まる単位でのランキング',
-   w:'プールのランキングとは別に、クラスター表示を追加した。同じプールを「一度に止まる単位」でまとめ、規模の大きい順に並べる。各行には、なぜそれが一つの単位なのかを明記した。コミュニティのデータベースが同一運営としているのか、KES鍵の更新が同期しているのか、同じアドレスを共有しているのか。これらは意味が違う。鍵の更新は人が予定を立てて行う作業だが、アドレスの共有は機材の話であるため、どれに当たるかを示している。2つ3つを同時に持つ行も多い。同じ集団が別々のアドレス経由で最大7回現れていたので、重なる見方はまとめ、その根拠だけを残った1行に集約した（重複302件を除いて171グループ）。ここに並ぶグループはいずれも稼働している。最後の列はこのスナップショットで見えた状態であって、評価ではない。採点には一切使っていない。'}
+   w:'プールのランキングとは別に、クラスター表示を追加した。同じプールを「一度に止まる単位」でまとめ、規模の大きい順に並べる。各行には、なぜそれが一つの単位なのかを明記した。コミュニティのデータベースが同一運営としているのか、KES鍵の更新が同期しているのか、同じアドレスを共有しているのか。これらは意味が違う。鍵の更新は人が予定を立てて行う作業だが、アドレスの共有は機材の話であるため、どれに当たるかを示している。2つ3つを同時に持つ行も多い。同じ集団が別々のアドレス経由で最大7回現れていたので、重なる見方はまとめ、その根拠だけを残った1行に集約した（重複302件を除いて171グループ）。ここに並ぶグループはいずれも稼働している。最後の列はこのスナップショットで見えた状態であって、評価ではない。採点には一切使っていない。'},
+  {d:'2026-08-31',t:'クラスターに名寄せDB由来の名称を付け、出どころを明記',
+   w:'kes:2 と表示されていても読む人には探しようがない。名寄せデータベースが名前を付けている集団は、その名前で表示し、どのデータベース由来かを行ごとに明記するようにした。該当が無い集団は従来どおりKESクラスターや共有アドレスを出すが、その旨も書く。152グループ中134に名前が付き、残る18件は合計で全ブロックの1.4%。名称が集団の一部しか覆っていない場合は件数も出す（61プール中50件がその名称、など）。カタログに載っているかどうかに関わらず、残りのプールも同じ障害ドメインにいるためである。統合の判定も誤っていた。50プールのラベルと55プールのKESクラスターは44プールが重なる同じ運営だが、どちらも他方の部分集合ではないため2グループとして並んでいた。半分以上重なる集団は同一として扱うようにした。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1635,12 +1646,17 @@ function renderClusters(){
   const srcName=k=>t.dGroupSrc[k]||'';
   clubody.innerHTML=list.map(dm=>{
     const st=dm.imp>=100?'down':dm.imp>0?'part':'run';
-    const label=dm.kind==='label'?dm.key:(dm.kind==='kes'?t.grpKes+String(dm.key).replace('kes:',''):t.grpIp+dm.key);
+    // 名寄せDBが付けている名前を優先する。無い場合だけ機械的なキーを出す。
+    const label=dm.name?dm.name
+      :(String(dm.key).indexOf('kes:')===0?t.grpKes+String(dm.key).slice(4):t.grpIp+dm.key);
     return '<tr class="clurow" data-dk="'+esc(dm.key)+'">'+
       '<td><div class="clname">'+esc(label)+'</div>'+
         '<div class="clbases">'+(dm.bases||[dm.kind]).map(b=>
           '<span class="clbase '+b+'" title="'+esc(t.baseWhy[b])+'">'+esc(t.baseName[b])+'</span>').join('')+'</div>'+
-        (dm.kind==='label'&&dm.src?'<div class="clsrc">'+esc(srcName(dm.src))+'</div>':'')+'</td>'+
+        (dm.name
+          ? '<div class="clsrc">'+esc(t.clFrom(srcName(dm.src)))+
+              (dm.cover<dm.n?' <span class="clpart">'+esc(t.clCover(dm.cover,dm.n))+'</span>':'')+'</div>'
+          : '<div class="clsrc">'+esc(t.clNoName)+'</div>')+'</td>'+
       '<td class="num"><b>'+dm.n+'</b>'+(dm.ranked<dm.n?'<div class="sub">'+esc(t.clRanked(dm.ranked))+'</div>':'')+'</td>'+
       '<td class="num"><b>'+dm.ips+'</b><div class="sub">'+(dm.ranked/Math.max(dm.ips,1)).toFixed(1)+esc(t.clPerIp)+'</div></td>'+
       '<td class="num"><b>'+dm.blk.toFixed(2)+'%</b>'+

@@ -333,35 +333,71 @@ foreach ($kv in $domMembers.GetEnumerator()) {
     imp = [Math]::Round($imp / $rankedCount * 100, 1)
   })
 }
-# 同じ集団が「ラベル」「KESクラスター」「共有IP」で何度も現れるので、
-# 規模の大きい順に見て、既に採ったものに含まれる集団は落とす。
-# 例: FIGMENT の38プールは、ラベル1件とIP6件で同じ集団を指していた。
-$domainList = @($domainList | Sort-Object @{e='blk';Descending=$true}, @{e='n';Descending=$true})
-# 落とすときに、その集団が「なぜ一つとみなされたか」の根拠(kind)は拾っておく。
-# 同じ38プールがラベルでもIPでも一致するなら、根拠が2つあるということなので。
-$keptSets = New-Object System.Collections.ArrayList
-$keptDm   = New-Object System.Collections.ArrayList
-$deduped  = New-Object System.Collections.ArrayList
-foreach ($dm in $domainList) {
+# 同じ運営が「ラベル」「KESクラスター」「共有IP」で何度も現れる。単純な包含判定では
+# 足りない: COINBASE ラベルの50プールと KES クラスターの55プールは44プールが重なる
+# 同じ運営だが、どちらも他方の部分集合ではないため両方残ってしまう。
+# 小さい方の半分以上が重なるものは同じ障害ドメインとみなして統合する。
+$cands = @($domainList | Sort-Object @{e='n';Descending=$true})
+$comps = New-Object System.Collections.ArrayList
+foreach ($dm in $cands) {
   $set = New-Object 'System.Collections.Generic.HashSet[string]'
   foreach ($m in $domMembers[$dm.key]) { [void]$set.Add($m) }
-  $coverIdx = -1
-  for ($i = 0; $i -lt $keptSets.Count; $i++) {
-    if ($set.IsSubsetOf($keptSets[$i])) { $coverIdx = $i; break }
+  $hit = $null
+  foreach ($c in $comps) {
+    $small = [Math]::Min($set.Count, $c.set.Count)
+    if ($small -eq 0) { continue }
+    $ov = 0
+    foreach ($m in $set) { if ($c.set.Contains($m)) { $ov++ } }
+    if ($ov / $small -ge 0.5) { $hit = $c; break }
   }
-  if ($coverIdx -ge 0) {
-    $owner = $keptDm[$coverIdx]
-    if ($owner.bases -notcontains $dm.kind) { $owner.bases += $dm.kind }
+  if ($hit) {
+    foreach ($m in $set) { [void]$hit.set.Add($m) }
+    if ($hit.bases -notcontains $dm.kind) { $hit.bases += $dm.kind }
     continue
   }
-  $dm | Add-Member -NotePropertyName bases -NotePropertyValue @($dm.kind) -Force
-  [void]$keptSets.Add($set)
-  [void]$keptDm.Add($dm)
-  [void]$deduped.Add($dm)
+  [void]$comps.Add([pscustomobject]@{ set = $set; bases = @($dm.kind); key = $dm.key })
 }
-$dropped = $domainList.Count - $deduped.Count
-$domainList = @($deduped)
-Write-Output "  cluster list: dropped $dropped duplicate views of the same group"
+
+# 表示名は他所が付けている名前を優先する。機械的なキー(kes:2 など)では人が探せない。
+# どのラベルが何件を占めるかまで持たせ、全員を覆っていない場合はそう書けるようにする。
+$domainList = New-Object System.Collections.ArrayList
+foreach ($c in $comps) {
+  $members = @($c.set)
+  $rankedMembers = @($members | Where-Object { $rankedSet.ContainsKey($_) })
+  if ($rankedMembers.Count -lt 1) { continue }
+  $blk = 0.0; $imp = 0; $ownIp = 0
+  $ipKeys = @{}
+  foreach ($m in $members) {
+    if ($blkOf.ContainsKey($m)) { $blk += $blkOf[$m] }
+    if (-not $rankedSet.ContainsKey($m)) { continue }
+    if ($impairedSet.ContainsKey($m)) { $imp++ }
+    if ($ipMap.ContainsKey($m)) { $ipKeys[$ipMap[$m].key] = $true } else { $ownIp++ }
+  }
+  $counts = @{}
+  foreach ($m in $members) {
+    $l = $rawLabels[$m]
+    if ($l -and $l -ne 'SINGLEPOOL') { $counts[$l] = ($counts[$l] + 1) }
+  }
+  $name = $null; $cover = 0; $src = $null
+  foreach ($kv in $counts.GetEnumerator()) { if ($kv.Value -gt $cover) { $cover = $kv.Value; $name = $kv.Key } }
+  if ($name) {
+    foreach ($m in $members) {
+      if ($rawLabels[$m] -eq $name -and $labelSource -and $labelSource.ContainsKey($m)) { $src = $labelSource[$m]; break }
+    }
+  }
+  $domGroups[$c.key] = Build-Group $members
+  [void]$domainList.Add([pscustomobject]@{
+    key = $c.key; bases = @($c.bases); name = $name; src = $src; cover = $cover
+    n = $members.Count; ranked = $rankedMembers.Count
+    blk = $(if ($totalBlocks -gt 0) { [Math]::Round($blk / $totalBlocks * 100, 3) } else { 0 })
+    ips = ($ipKeys.Count + $ownIp)
+    imp = [Math]::Round($imp / $rankedMembers.Count * 100, 1)
+  })
+}
+$domainList = @($domainList | Where-Object { $_ } | Sort-Object @{e='blk';Descending=$true})
+$named = @($domainList | Where-Object { $_.name }).Count
+Write-Output "  cluster list: $($domainList.Count) failure domains, $named carry a name from a grouping database"
+
 $domainsJson = ConvertTo-Json -InputObject $domainList -Depth 4 -Compress
 if (-not $domainsJson) { $domainsJson = '[]' }
 if ($domainsJson -notmatch '^\[') { $domainsJson = "[$domainsJson]" }
