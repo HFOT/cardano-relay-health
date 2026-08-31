@@ -177,6 +177,7 @@ input:focus,select:focus{outline:none;border-color:var(--v);box-shadow:0 0 0 3px
 .dirbtn:focus-visible{outline:none;border-color:var(--v);box-shadow:0 0 0 3px rgba(var(--vRGB),.24)}
 /* ステーク量の横棒。飽和点(=総供給量/k)に縦線を引き、超えた分は色を変える。
    目盛りの幅は飽和点の150%まで。採点には一切関与しない表示専用。 */
+.pill.dom{background:rgba(255,255,255,.06);border-color:var(--stroke2);color:var(--muted);font-variant-numeric:tabular-nums}
 .sub.fee{color:var(--dim)}
 /* ステーク推移のスパークライン。プール自身の最小〜最大に合わせて描くので、
    規模の違うプール同士でも形が比べられる。表示専用で採点には関与しない。 */
@@ -569,7 +570,9 @@ en:{
  axisName:{score:'Score', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
    kesSize:'KES cluster', ipSize:'Pools on one IP', relays:'Registered relays',
    hosts:'Reachable hosts', atTip:'Hosts at tip', sat:'Saturation',
-   margin:'Margin', fixed:'Fixed fee'},
+   margin:'Margin', fixed:'Fixed fee', dom:'Stops together'},
+ domWord:'Joint',
+ domTitle:(n,b)=>'This pool shares infrastructure with '+(n-1)+' others. If that shared point failed, all '+n+' would stop at once - together they produce '+b.toFixed(2)+'% of recent blocks. It is a description of scale, not a fault: the most concentrated groups measured here are currently among the most reliable. Never scored.',
  feeWord:'Fee',
  periods:[['m1','1M'],['m3','3M']],
  sparkNew:'new',
@@ -578,7 +581,7 @@ en:{
  satWord:'Saturation', satFull:'FULL',
  satTitle:p=>p+'% of the saturation point. Past 100% further delegation earns proportionally less. It says nothing about how the pool is run and is not scored.',
  satNote:pt=>'The bar under each stake figure places the pool against the saturation point ('+pt+' ADA: the total supply, which is 45 billion ADA less reserves, divided by k). The upright mark is 100%. Past it, additional delegation earns proportionally less - a fact about rewards, not about the operator. It is shown only and never scored, and it is measured against the stake in this snapshot rather than live.',
- axisDir:{sat:['Highest first','Lowest first'],
+ axisDir:{sat:['Highest first','Lowest first'], dom:['Largest first','Smallest first'],
    margin:['Lowest first','Highest first'], fixed:['Lowest first','Highest first'],
    score:['Highest first','Lowest first'], rtt:['Fastest first','Slowest first'],
    stake:['Largest first','Smallest first'], blocks:['Most first','Fewest first'],
@@ -652,13 +655,16 @@ en:{
   {d:'2026-08-30',t:'A stake trend line for each pool',
    w:'The stake figure said where a pool is but not where it has been coming from. Each row now carries a small line of the last three months alongside the change over that span, and the column header switches between one month and three. The unit is the epoch, not the day: stake only moves at epoch boundaries, and an epoch is five days, so a week would be a line through two points. Each line is scaled to its own pool, which means the shape can be compared across the table but the height cannot. This is display only and never scored - gaining or losing delegation says nothing about how a pool is run.'},
   {d:'2026-08-30',t:'The page can be recoloured',
-   w:'A control next to the language switch changes the palette - violet, Cardano blue, mint, ember, slate or rose. It is a skin and nothing more: no layout, no column, no figure moves, and the colours that carry meaning stay put in every palette, so green still reads as reachable and pink as not, whichever one is chosen. An operator sharing a screenshot of their own row can pick something that looks like theirs. The choice is remembered in the browser it was made in and never leaves it.'}
+   w:'A control next to the language switch changes the palette - violet, Cardano blue, mint, ember, slate or rose. It is a skin and nothing more: no layout, no column, no figure moves, and the colours that carry meaning stay put in every palette, so green still reads as reachable and pink as not, whichever one is chosen. An operator sharing a screenshot of their own row can pick something that looks like theirs. The choice is remembered in the browser it was made in and never leaves it.'},
+  {d:'2026-08-31',t:'How much stops together, and who says these pools go together',
+   w:'The signals column named which pools share infrastructure but never how much rides on it. A neutral figure now sits at the end of that column: if the shared point failed, this is the share of recent block production that would stop at the same moment. The largest failure domain carries 12.28% of blocks; the top ten together carry 41.1% from 18.7% of pools. It is sortable. It is not scored and it is not a warning - the most concentrated groups measured here are currently among the most reliable, so this describes scale, not fault. Separately, the group label now names which database it came from. Three answer this question through Koios and they do not always agree: one groups by operator where another groups by domain, so the same 25 pools can be a single label in one and seven in another. Presenting them as one voice was overstating the agreement.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
  dBenign:'Why this may still be normal: ',
  dMeta:(x)=>'Observed '+(x.checked||'—')+' · probed '+x.probed+' · reachable '+x.reachable+' · at tip '+x.atTip+' · registered endpoints '+x.entries,
- dGroupLabel:(g)=>'Also listed under the label “'+esc(g)+'” in <a href="https://github.com/cardano-community/pool_groups" target="_blank" rel="noopener">pool_groups</a>, a community-run grouping database - shown as a citation, not a judgment we are making.',
+ dGroupSrc:{community:'cardano-community/pool_groups',adastat:'AdaStat',balance:'Balance Analytics'},
+ dGroupLabel:(g,src)=>'Also listed under the label “'+esc(g)+'” by '+esc(src)+', a community-maintained grouping database, served through <a href="https://api.koios.rest" target="_blank" rel="noopener">Koios</a>. These databases do not always agree - one may group by operator where another groups by domain - so the source is named rather than presented as settled. Shown as a citation, not a judgment we are making.',
  dRelayNote:(v)=>'One registered relay address includes a URL scheme (“'+esc(v.split('://')[0])+'://”): '+esc(v)+'. Most likely left over from copying a config template, not something deliberate.',
  copyBtn:'Copy pool ID', copyDone:'Copied ✓',
  axes:{reach:'Reachability & tip',redundancy:'Relay redundancy',independence:'Infra independence',
@@ -854,7 +860,9 @@ ja:{
  axisName:{score:'スコア', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
    kesSize:'KESクラスター', ipSize:'同じIPのプール', relays:'登録リレー',
    hosts:'到達ホスト', atTip:'Tip同期ホスト', sat:'飽和度',
-   margin:'手数料率', fixed:'固定手数料'},
+   margin:'手数料率', fixed:'固定手数料', dom:'同時に止まる規模'},
+ domWord:'同時',
+ domTitle:(n,b)=>'このプールは他の'+(n-1)+'プールと設備を共有しています。その共有点が落ちると'+n+'プールが同時に止まり、合わせて直近ブロックの'+b.toFixed(2)+'%を占めます。規模の記述であって欠陥ではありません。実測では、集中しているグループほど不調率はむしろ低く出ています。採点には使っていません。',
  feeWord:'手数料',
  periods:[['m1','1か月'],['m3','3か月']],
  sparkNew:'新規',
@@ -863,7 +871,7 @@ ja:{
  satWord:'飽和度', satFull:'飽和',
  satTitle:p=>'飽和点に対して '+p+'%。100%を超えると、追加の委任は報酬が薄まります。運営の良し悪しとは関係がなく、採点にも使っていません。',
  satNote:pt=>'ステークの下の横棒は、飽和点（'+pt+' ADA。総供給量＝最大供給45億ADAから準備金を引いた額を、kで割った値）に対する位置です。縦線が100%。これを超えると追加の委任は報酬が薄まります。報酬についての事実であって、運営についての評価ではありません。表示のみで採点には使っておらず、値はこのスナップショット時点のステークに対するものです。',
- axisDir:{sat:['高い順','低い順'],
+ axisDir:{sat:['高い順','低い順'], dom:['大きい順','小さい順'],
    margin:['低い順','高い順'], fixed:['低い順','高い順'],
    score:['高い順','低い順'], rtt:['速い順','遅い順'],
    stake:['多い順','少ない順'], blocks:['多い順','少ない順'],
@@ -937,13 +945,16 @@ ja:{
   {d:'2026-08-30',t:'ステーク推移の線を各プールに追加',
    w:'ステーク量の数字は現在地を示すだけで、そこに至る動きが見えなかった。各行に直近3か月の推移を小さな線で表示し、その期間の変化率を併記した。列見出しで1か月と3か月を切り替えられる。単位は日ではなくエポックである。ステークはエポック境界でしか動かず、1エポックは5日なので、1週間では点が2つしか打てないため。線はそれぞれのプール自身の最小〜最大に合わせて描いているので、形は表の中で比べられるが高さは比べられない。表示のみで採点には使っていない。委任が増えたか減ったかは、運営の良し悪しとは別の話であるため。'},
   {d:'2026-08-30',t:'配色を選べるようにした',
-   w:'言語切替の隣のボタンで、ページ全体の配色を変えられるようにした（バイオレット、カルダノブルー、ミント、エンバー、スレート、ローズ）。変わるのは色だけで、レイアウトも列も数値も動かない。意味を持つ色はどの配色でも固定してあるので、緑が到達・ピンクが異常という読み方はそのまま通じる。運営者が自分の行のスクリーンショットを共有するときに、自分らしい見た目を選べるようにという意図。選んだ配色はそのブラウザの中だけに保存され、外へは出ない。'}
+   w:'言語切替の隣のボタンで、ページ全体の配色を変えられるようにした（バイオレット、カルダノブルー、ミント、エンバー、スレート、ローズ）。変わるのは色だけで、レイアウトも列も数値も動かない。意味を持つ色はどの配色でも固定してあるので、緑が到達・ピンクが異常という読み方はそのまま通じる。運営者が自分の行のスクリーンショットを共有するときに、自分らしい見た目を選べるようにという意図。選んだ配色はそのブラウザの中だけに保存され、外へは出ない。'},
+  {d:'2026-08-31',t:'同時に止まる規模と、誰がそのグループ分けをしたのか',
+   w:'注意シグナルの列は、どのプールが設備を共有しているかは示していたが、そこに何がどれだけ乗っているかは示していなかった。その共有点が落ちたとき同時に止まるブロック生成の割合を、列の末尾に中立の表示として置いた。最大の障害ドメインは全ブロックの12.28%を担い、上位10で41.1%（プール数では18.7%）になる。並べ替えの軸にも追加した。採点には使っておらず、注意シグナルでもない。実測では集中しているグループほど不調率はむしろ低いので、これは規模の記述であって欠陥の指摘ではない。あわせて、名寄せラベルがどのデータベース由来かを明記するようにした。Koios 経由で3つのDBがこの問いに答えていて、常に一致するわけではない。運営者単位でまとめるものとドメイン単位で分けるものがあり、同じ25プールが片方では1ラベル、もう片方では7ラベルに分かれる。3つを1つの声として出すのは、合意の度合いを実際より強く見せていた。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
  dBenign:'正常である可能性：',
  dMeta:(x)=>'観測時刻 '+(x.checked||'—')+' ／ probe対象 '+x.probed+' · 到達 '+x.reachable+' · Tip同期 '+x.atTip+' · 登録endpoint '+x.entries,
- dGroupLabel:(g)=>'コミュニティ運営の名寄せデータベース <a href="https://github.com/cardano-community/pool_groups" target="_blank" rel="noopener">pool_groups</a> では「'+esc(g)+'」として分類されています。ここでは引用として掲載しているだけで、当ページ自体の判断ではありません。',
+ dGroupSrc:{community:'cardano-community/pool_groups',adastat:'AdaStat',balance:'Balance Analytics'},
+ dGroupLabel:(g,src)=>'コミュニティが運営する名寄せデータベース '+esc(src)+'（<a href="https://api.koios.rest" target="_blank" rel="noopener">Koios</a> 経由）では「'+esc(g)+'」として分類されています。これらのデータベースは常に一致するわけではなく、運営者単位でまとめるものとドメイン単位で分けるものがあるため、どこ由来かを明記しています。引用として掲載しているだけで、当ページ自体の判断ではありません。',
  dRelayNote:(v)=>'登録されているリレーアドレスの1つに、URLスキーム（「'+esc(v.split('://')[0])+'://」）が含まれています：'+esc(v)+'。設定テンプレートをコピーした際の残りなど、単純な表記上の特徴である可能性が高く、意図を断定するものではありません。',
  copyBtn:'Pool IDをコピー', copyDone:'コピーしました ✓',
  axes:{reach:'到達性・Tip同期',redundancy:'リレー冗長性',independence:'インフラ独立性',
@@ -1295,6 +1306,14 @@ function poolHex(x){
 }
 
 /* ==================== rows ==================== */
+// 同時に止まる規模。1つの障害点が落ちたとき一緒に止まるブロック生成の割合。
+// シグナル（注意点）ではなく規模の記述なので、色は付けず中立に置く。
+function domPill(x){
+  if(x.domBlk==null||x.domN<2)return '';
+  const t=T();
+  return '<span class="pill dom" title="'+esc(t.domTitle(x.domN,x.domBlk))+'">'+
+    esc(t.domWord)+' '+x.domBlk.toFixed(2)+'%</span>';
+}
 function signalsHtml(x){
   const p=[],P=T().pills;
   if(x.shared)    p.push('<span class="pill warn">'+esc(P.ep)+'</span>');
@@ -1304,7 +1323,9 @@ function signalsHtml(x){
   if(x.kesLinked) p.push('<button class="pill warn" data-gtype="kes" data-gkey="'+esc(x.kesCluster)+'">'+esc(P.kes)+' ×'+x.kesClusterSize+'</button>');
   if(x.foreign)   p.push('<span class="pill bad">'+esc(P.foreign)+'</span>');
   if(x.removedAll)p.push('<span class="pill bad">'+esc(P.removed)+'</span>');
-  return p.length?p.join(''):'<span class="pill ok">'+esc(P.none)+'</span>';
+  const base=p.length?p.join(''):'<span class="pill ok">'+esc(P.none)+'</span>';
+  // 同時停止は注意シグナルではなく規模の記述なので、シグナルの後ろに中立の色で置く
+  return base+domPill(x);
 }
 function miniBar(x){
   return '<div class="mini c'+x.grade+'">'+AXES.map(a=>{
@@ -1330,7 +1351,7 @@ function detailRow(x){
     '<div><h3>'+esc(T().dSignals(x.issues.length))+'</h3>'+issues+
       '<p class="note"><b>'+esc(T().dBenign)+'</b>'+esc(benignList(x))+'</p>'+
       '<p class="note">'+esc(T().dMeta(x))+'</p>'+
-      (x.groupLabel?('<p class="cite">'+T().dGroupLabel(x.groupLabel)+'</p>'):'')+
+      (x.groupLabel?('<p class="cite">'+T().dGroupLabel(x.groupLabel,(T().dGroupSrc[x.groupSrc]||T().dGroupSrc.community))+'</p>'):'')+
       (x.relayNotes&&x.relayNotes.length?('<p class="cite">'+x.relayNotes.map(n=>T().dRelayNote(n.value)).join('<br>')+'</p>'):'')+
     '</div>'+
   '</div></td></tr>';
@@ -1430,7 +1451,8 @@ const SORTAXES=[
   {k:'atTip',  group:1, get:x=>x.atTip||0},
   {k:'sat',    group:1, get:x=>x.sat==null?null:x.sat, nullLast:1},
   {k:'margin', group:1, get:x=>x.margin==null?null:x.margin, nullLast:1, firstAsc:1},
-  {k:'fixed',  group:1, get:x=>x.fixedAda==null?null:x.fixedAda, nullLast:1, firstAsc:1}
+  {k:'fixed',  group:1, get:x=>x.fixedAda==null?null:x.fixedAda, nullLast:1, firstAsc:1},
+  {k:'dom',    group:1, get:x=>x.domBlk==null?0:x.domBlk}
 ];
 const AXIS=k=>SORTAXES.find(a=>a.k===k)||SORTAXES[0];
 // 同値はスコア順に落ち着かせる。RTT未計測は向きに関わらず常に最後。
@@ -1515,7 +1537,7 @@ function renderUnmeasured(s){
       '<td><div class="ticker" style="color:var(--muted)">'+esc(u.ticker||t.noTicker)+'</div>'+
         '<div class="poolid" title="'+esc(u.pool)+'">'+esc(u.pool)+'</div>'+
         '<div class="sub">'+esc(t.umReason[u.reason]||u.reason)+'</div>'+
-        (u.groupLabel?('<p class="cite">'+t.dGroupLabel(u.groupLabel)+'</p>'):'')+'</td>'+
+        (u.groupLabel?('<p class="cite">'+t.dGroupLabel(u.groupLabel,(t.dGroupSrc[u.groupSrc]||t.dGroupSrc.community))+'</p>'):'')+'</td>'+
       '<td><span class="sub">'+esc(umHistory(u))+'</span></td>'+
       '<td class="num"><b>'+fmt(u.blocks)+'</b></td>'+
       '<td class="num"><div>'+fmt(u.stake)+' <span class="sub">₳</span></div>'+

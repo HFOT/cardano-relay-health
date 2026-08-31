@@ -51,11 +51,19 @@ try {
 
 if ($rows.Count -lt 500) { Skip-ThisRun "pool_groups returned only $($rows.Count) rows" }
 
+# Three databases answer this, and they do not always agree - AdaStat groups by
+# domain where the other two group by operator, so the same 25 pools can be one
+# label there and seven here. Which one a label came from is recorded so the
+# page can say so rather than presenting all three as one voice.
 $out = foreach ($r in $rows) {
-  $label = if ($r.pool_group) { $r.pool_group } elseif ($r.adastat_group) { $r.adastat_group } elseif ($r.balanceanalytics_group) { $r.balanceanalytics_group } else { $null }
+  $label = $null; $src = $null
+  if     ($r.pool_group)            { $label = $r.pool_group;            $src = 'community' }
+  elseif ($r.adastat_group)         { $label = $r.adastat_group;         $src = 'adastat' }
+  elseif ($r.balanceanalytics_group){ $label = $r.balanceanalytics_group; $src = 'balance' }
   if ($label) {
-    [pscustomobject]@{ pool_bech32 = $r.pool_id_bech32; group_label = $label }
+    [pscustomobject]@{ pool_bech32 = $r.pool_id_bech32; group_label = $label; source = $src }
   }
 }
 $out | Export-Csv -NoTypeInformation -Encoding UTF8 $outFile
-Write-Output "pool_groups: $($rows.Count) pools fetched, $(@($out).Count) with a group label"
+$bySrc = @($out) | Group-Object source | ForEach-Object { "$($_.Name)=$($_.Count)" }
+Write-Output "pool_groups: $($rows.Count) pools fetched, $(@($out).Count) with a group label ($($bySrc -join ', '))"
