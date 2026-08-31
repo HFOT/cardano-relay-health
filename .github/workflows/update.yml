@@ -108,4 +108,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
           git commit -m "Rebuild ranking from ABCDE data ($(date -u '+%Y-%m-%d'))"
-          git push
+          # A push from a person while this run was building rejects this one.
+          # The commit is a data-only rebuild and the next run regenerates it
+          # from the same source, so losing it costs nothing - failing the
+          # workflow over it would just be noise. Warn and stop cleanly.
+          if ! git push; then
+            echo "::warning::Push rejected - the branch moved while this run was building. Skipping today's data-only rebuild; the next run will redo it."
+            exit 0
+          fi
