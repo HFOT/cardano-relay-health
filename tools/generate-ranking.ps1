@@ -150,6 +150,7 @@ foreach ($r in $rows) {
   }
 }
 $domains = @{}
+$domMembers = @{}
 function Add-Domain($key, $members) {
   $blk = 0.0
   foreach ($m in $members) { if ($blkOf.ContainsKey($m)) { $blk += $blkOf[$m] } }
@@ -162,6 +163,7 @@ function Add-Domain($key, $members) {
       $domains[$m] = [pscustomobject]@{ key=$key; n=$members.Count; blk=$blk }
     }
   }
+  if (-not $domMembers.ContainsKey($key)) { $domMembers[$key] = @($members) }
 }
 $byLabel = @{}
 foreach ($kv in $rawLabels.GetEnumerator()) {
@@ -293,13 +295,85 @@ foreach ($grp in ($kesMembers | Group-Object cluster_id)) {
   $g = Build-Group ($grp.Group | ForEach-Object { $_.pool_bech32 })
   if ($g) { $kesGroups[$grp.Name] = $g }
 }
-$groupsJson = ([pscustomobject]@{ kes = $kesGroups; ip = $ipGroups } | ConvertTo-Json -Depth 6 -Compress)
+# 障害ドメインの一覧。プール単位ではなく「一緒に止まる単位」で並べるための表。
+# ランキングに出るプールを1件以上含むものだけ載せる（開けないものは出さない）。
+$impairedSet = @{}
+foreach ($x in $ranked) { if ($x.reachable -eq 0 -or $x.atTip -eq 0) { $impairedSet[$x.pool] = $true } }
+
+$domGroups = @{}
+$domainList = New-Object System.Collections.ArrayList
+foreach ($kv in $domMembers.GetEnumerator()) {
+  $key = $kv.Key
+  $g = Build-Group $kv.Value
+  if (-not $g) { continue }
+  $domGroups[$key] = $g
+  $blk = 0.0; $rankedCount = 0; $imp = 0
+  $ipKeys = @{}; $ownIp = 0
+  foreach ($m in $kv.Value) {
+    if ($blkOf.ContainsKey($m)) { $blk += $blkOf[$m] }
+    if (-not $rankedSet.ContainsKey($m)) { continue }
+    $rankedCount++
+    if ($impairedSet.ContainsKey($m)) { $imp++ }
+    # 独立したエンドポイント数。共有と判定されなかったプールは各自1つとして数えるので
+    # これは上限値であって、独立が確認できた数ではない。
+    if ($ipMap.ContainsKey($m)) { $ipKeys[$ipMap[$m].key] = $true } else { $ownIp++ }
+  }
+  if ($rankedCount -lt 1) { continue }
+  $kind = 'ip'; $src = $null
+  if ($key -like 'kes:*') { $kind = 'kes' }
+  elseif ($key -notmatch ':') {
+    $kind = 'label'
+    foreach ($m in $kv.Value) { if ($labelSource -and $labelSource.ContainsKey($m)) { $src = $labelSource[$m]; break } }
+  }
+  [void]$domainList.Add([pscustomobject]@{
+    key = $key; kind = $kind; src = $src
+    n = $kv.Value.Count; ranked = $rankedCount
+    blk = $(if ($totalBlocks -gt 0) { [Math]::Round($blk / $totalBlocks * 100, 3) } else { 0 })
+    ips = ($ipKeys.Count + $ownIp)
+    imp = [Math]::Round($imp / $rankedCount * 100, 1)
+  })
+}
+# 同じ集団が「ラベル」「KESクラスター」「共有IP」で何度も現れるので、
+# 規模の大きい順に見て、既に採ったものに含まれる集団は落とす。
+# 例: FIGMENT の38プールは、ラベル1件とIP6件で同じ集団を指していた。
+$domainList = @($domainList | Sort-Object @{e='blk';Descending=$true}, @{e='n';Descending=$true})
+# 落とすときに、その集団が「なぜ一つとみなされたか」の根拠(kind)は拾っておく。
+# 同じ38プールがラベルでもIPでも一致するなら、根拠が2つあるということなので。
+$keptSets = New-Object System.Collections.ArrayList
+$keptDm   = New-Object System.Collections.ArrayList
+$deduped  = New-Object System.Collections.ArrayList
+foreach ($dm in $domainList) {
+  $set = New-Object 'System.Collections.Generic.HashSet[string]'
+  foreach ($m in $domMembers[$dm.key]) { [void]$set.Add($m) }
+  $coverIdx = -1
+  for ($i = 0; $i -lt $keptSets.Count; $i++) {
+    if ($set.IsSubsetOf($keptSets[$i])) { $coverIdx = $i; break }
+  }
+  if ($coverIdx -ge 0) {
+    $owner = $keptDm[$coverIdx]
+    if ($owner.bases -notcontains $dm.kind) { $owner.bases += $dm.kind }
+    continue
+  }
+  $dm | Add-Member -NotePropertyName bases -NotePropertyValue @($dm.kind) -Force
+  [void]$keptSets.Add($set)
+  [void]$keptDm.Add($dm)
+  [void]$deduped.Add($dm)
+}
+$dropped = $domainList.Count - $deduped.Count
+$domainList = @($deduped)
+Write-Output "  cluster list: dropped $dropped duplicate views of the same group"
+$domainsJson = ConvertTo-Json -InputObject $domainList -Depth 4 -Compress
+if (-not $domainsJson) { $domainsJson = '[]' }
+if ($domainsJson -notmatch '^\[') { $domainsJson = "[$domainsJson]" }
+Write-Output "  cluster list: $($domainList.Count) failure domains"
+
+$groupsJson = ([pscustomobject]@{ kes = $kesGroups; ip = $ipGroups; dom = $domGroups } | ConvertTo-Json -Depth 6 -Compress)
 Write-Output "  groups: kes=$($kesGroups.Count) ip=$($ipGroups.Count)"
 $checked = ($ranked | Where-Object checked | Select-Object -First 1).checked
 
 # 表示部は work\template.html が単一ソース。__DATA__ と __CHECKED__ だけ差し込む。
 $html = [IO.File]::ReadAllText($tpl, [Text.UTF8Encoding]::new($false))
-$html = $html.Replace('__DATA__',$json).Replace('__GROUPS__',$groupsJson).Replace('__UNMEASURED__',$unmeasuredJson).Replace('__SATPOINT__',$(if($satPoint -gt 0){[long]$satPoint}else{0})).Replace('__CHECKED__',$checked)
+$html = $html.Replace('__DATA__',$json).Replace('__GROUPS__',$groupsJson).Replace('__UNMEASURED__',$unmeasuredJson).Replace('__DOMAINS__',$domainsJson).Replace('__SATPOINT__',$(if($satPoint -gt 0){[long]$satPoint}else{0})).Replace('__CHECKED__',$checked)
 # -OutFile may be a bare filename, in which case Split-Path yields ''.
 $out = [IO.Path]::GetFullPath((Join-Path (Get-Location).Path $out))
 $outDir = Split-Path $out -Parent

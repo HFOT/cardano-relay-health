@@ -210,6 +210,27 @@ button.pill{font:inherit;font-size:11.5px;line-height:1.5;cursor:pointer}
 button.pill:hover{filter:brightness(1.32);border-color:rgba(255,255,255,.5)}
 .rankhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:56px 0 6px}
 .rankhead h2{margin:0}
+/* プール単位とクラスター単位の切替。同じ母集団を別の粒度で見るだけで、
+   採点も閾値も変わらない。 */
+.viewsw{display:inline-flex;border:1px solid var(--stroke2);border-radius:999px;overflow:hidden;
+  background:rgba(255,255,255,.05)}
+.viewsw button{background:transparent;border:0;color:var(--muted);font:inherit;font-size:12px;
+  font-weight:700;padding:6px 13px;cursor:pointer;transition:.16s}
+.viewsw button:hover{color:var(--ink)}
+.viewsw button[aria-pressed="true"]{background:rgba(var(--vRGB),.3);color:#fff}
+tr.clurow{cursor:pointer}
+tr.clurow:hover{background:rgba(var(--vRGB),.1)}
+.clname{font-weight:700;color:var(--ink)}
+.clbases{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.clbase{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;border:1px solid var(--stroke2);
+  background:rgba(255,255,255,.05);color:var(--muted);white-space:nowrap}
+.clbase.label{border-color:rgba(var(--vRGB),.55);color:var(--v2)}
+.clbase.kes{border-color:rgba(var(--cRGB),.5);color:var(--c)}
+.clsrc{font-size:11px;color:var(--dim);margin-top:3px}
+.clbar{position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,.09);margin-top:5px;max-width:180px}
+.clbar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--v)}
+.clstate{font-weight:700}
+.clstate.run{color:var(--m)} .clstate.part{color:var(--a)} .clstate.down{color:var(--p)}
 .rankhead h2 code{font:.62em ui-monospace,monospace;color:#a5f3ea}
 #backrank{background:rgba(255,255,255,.06);border:1px solid var(--stroke2);color:var(--muted);
   border-radius:999px;padding:6px 14px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;transition:.15s}
@@ -434,6 +455,7 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
 
 <div class="rankhead">
   <h2 id="ranktitle"></h2>
+  <div class="viewsw" id="viewsw"></div>
   <button id="backrank" hidden></button>
 </div>
 <div class="tools">
@@ -471,6 +493,18 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
 </div>
 <p class="context" data-i18n="tableNote"></p>
 <p class="context" id="satnote"></p>
+
+<div class="tablebox" id="clubox" hidden><table>
+  <thead><tr>
+    <th data-i18n="clThGroup"></th>
+    <th style="width:96px" data-i18n="clThPools"></th>
+    <th style="width:118px" data-i18n="clThEndpoints"></th>
+    <th style="width:140px" data-i18n="clThBlk"></th>
+    <th style="width:132px" data-i18n="clThState"></th>
+  </tr></thead>
+  <tbody id="clubody"></tbody>
+</table></div>
+<p class="context" id="clunote" hidden></p>
 
 <section id="umsection">
 <h2 data-i18n="umTitle"></h2>
@@ -529,6 +563,8 @@ const GROUPS=__GROUPS__;
 const UNMEASURED=__UNMEASURED__;
 // 飽和点 (ADA)。総供給量(45億ADA - 準備金) / k。0 なら取得できなかった日なので目盛りを出さない。
 const SATPOINT=__SATPOINT__;
+// 障害ドメインの一覧。プールではなく「一緒に止まる単位」。
+const DOMAINS=__DOMAINS__;
 
 /* ==================== i18n ==================== */
 const I18N={
@@ -572,6 +608,19 @@ en:{
    hosts:'Reachable hosts', atTip:'Hosts at tip', sat:'Saturation',
    margin:'Margin', fixed:'Fixed fee', dom:'Stops together'},
  domWord:'Joint',
+ views:[['pool','Pools'],['cluster','Clusters']],
+ cluTitle:'Clusters by what stops together',
+ clHint:(n,all)=>n===all?all+' groups share infrastructure. Click one to see its pools.'
+   :n+' of '+all+' groups match. Click one to see its pools.',
+ baseName:{label:'Same operator',kes:'KES in sync',ip:'Same IP'},
+ baseWhy:{
+   label:'A community grouping database lists these pools as one operator. That is a third-party judgment, not something registered on chain.',
+   kes:'Their KES keys rotate together. Key rotation is a manual, scheduled job, so this usually means one person or one process is running all of them - the pools are coupled operationally, not just by hardware.',
+   ip:'They resolve to the same address. One machine, or one thing in front of it, answers for all of them - so one outage takes the whole set. Shared hosting and NAT produce the same signal, so it is a correlation and not proof of one owner.'},
+ clThGroup:'Group', clThPools:'Pools', clThEndpoints:'Endpoints', clThBlk:'Stops together', clThState:'Right now',
+ clRanked:n=>n+' measured', clPerIp:' per endpoint',
+ clRun:'All running', clPart:p=>p+'% not reached', clDown:'None reached',
+ clNote2:'Groups are ordered by how much block production would stop at the same moment, not by anything about how they are run. Every group here is operating - the state column is what this snapshot saw. Endpoints is an upper bound: pools not detected as sharing an address are counted as having their own, which may still sit in one datacentre. Nothing here is scored.',
  domTitle:(n,b)=>'This pool shares infrastructure with '+(n-1)+' others. If that shared point failed, all '+n+' would stop at once - together they produce '+b.toFixed(2)+'% of recent blocks. It is a description of scale, not a fault: the most concentrated groups measured here are currently among the most reliable. Never scored.',
  feeWord:'Fee',
  periods:[['m1','1M'],['m3','3M']],
@@ -657,7 +706,9 @@ en:{
   {d:'2026-08-30',t:'The page can be recoloured',
    w:'A control next to the language switch changes the palette - violet, Cardano blue, mint, ember, slate or rose. It is a skin and nothing more: no layout, no column, no figure moves, and the colours that carry meaning stay put in every palette, so green still reads as reachable and pink as not, whichever one is chosen. An operator sharing a screenshot of their own row can pick something that looks like theirs. The choice is remembered in the browser it was made in and never leaves it.'},
   {d:'2026-08-31',t:'How much stops together, and who says these pools go together',
-   w:'The signals column named which pools share infrastructure but never how much rides on it. A neutral figure now sits at the end of that column: if the shared point failed, this is the share of recent block production that would stop at the same moment. The largest failure domain carries 12.28% of blocks; the top ten together carry 41.1% from 18.7% of pools. It is sortable. It is not scored and it is not a warning - the most concentrated groups measured here are currently among the most reliable, so this describes scale, not fault. Separately, the group label now names which database it came from. Three answer this question through Koios and they do not always agree: one groups by operator where another groups by domain, so the same 25 pools can be a single label in one and seven in another. Presenting them as one voice was overstating the agreement.'}
+   w:'The signals column named which pools share infrastructure but never how much rides on it. A neutral figure now sits at the end of that column: if the shared point failed, this is the share of recent block production that would stop at the same moment. The largest failure domain carries 12.28% of blocks; the top ten together carry 41.1% from 18.7% of pools. It is sortable. It is not scored and it is not a warning - the most concentrated groups measured here are currently among the most reliable, so this describes scale, not fault. Separately, the group label now names which database it came from. Three answer this question through Koios and they do not always agree: one groups by operator where another groups by domain, so the same 25 pools can be a single label in one and seven in another. Presenting them as one voice was overstating the agreement.'},
+  {d:'2026-08-31',t:'A second view: clusters, ordered by what stops together',
+   w:'Alongside the pool ranking there is now a cluster view - the same pools grouped into the units that would stop at the same moment, largest first. Each row says why it is one unit: same operator by a community database, KES keys rotating together, or one shared address. Those mean different things and the labels say which, since key rotation is a scheduled human job while a shared address is a machine. Many rows carry two or three at once. The same group appeared up to seven times through different addresses, so overlapping views are folded together and their reasons collected onto the one row that remains - 302 duplicates removed, 171 groups left. Every group listed is operating; the last column is what this snapshot saw, not a verdict. Nothing here is scored.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -800,6 +851,11 @@ en:{
     ['what','Two numbers the operator registers on chain. The fixed fee is a flat amount taken from the pool rewards each epoch before anything else - the protocol sets a minimum, currently 170 ADA, and many pools sit exactly on it. The margin is the percentage of what is left that goes to the operator.'],
     ['holder','What reaches delegators is what remains after both. The fixed fee weighs most on a small pool: a flat charge is a large share of a small epoch reward and a negligible share of a large one. It is worth reading the two together rather than either alone.'],
     ['note','Neither is scored, and a higher fee is not a fault - running a pool costs money, and where an operator sets these is an ordinary business decision. What is shown is the figure the operator registered, unaltered.']]},
+   {k:'cluster',label:'What stops together',s:[
+    ['what','Some pools are run by one operator, or point at one shared address. If that shared point fails, every pool behind it stops at the same moment. The figure at the end of the signals column is how much of recent block production that would be, and the Clusters view lists those groups largest first.'],
+    ['holder','It is worth knowing whether your pool stops alone or with forty others. Not because a large group is worse - the biggest groups here are running fine - but because delegating across two pools in the same group is not the same as delegating across two independent ones.'],
+    ['chain','The ten largest groups produce 41% of recent blocks between them, from under a fifth of the pools. That is a property of how the network is arranged, not a claim about any operator.'],
+    ['note','This is not scored and is not a warning. Measured now, the most concentrated groups are among the most reliable - the single-endpoint ones read 0% unreachable against 17.9% across all pools. The risk is that a lot stops at once, not that it is likely to. The endpoint count is an upper bound: pools not detected as sharing an address are counted separately even if they sit in the same datacentre.']]},
    {k:'terms',label:'Terms',terms:[
     ['Relay','A server a pool runs so other nodes can connect to it. It receives blocks and transactions and passes them on, like a post office. It is published so anyone can connect.'],
     ['Block producer (BP)','The node that actually makes blocks. On-chain registration covers relay addresses, not where this node sits, so it falls outside what this page can observe.'],
@@ -862,6 +918,19 @@ ja:{
    hosts:'到達ホスト', atTip:'Tip同期ホスト', sat:'飽和度',
    margin:'手数料率', fixed:'固定手数料', dom:'同時に止まる規模'},
  domWord:'同時',
+ views:[['pool','プール'],['cluster','クラスター']],
+ cluTitle:'一緒に止まる単位でのランキング',
+ clHint:(n,all)=>n===all?all+'グループが設備を共有しています。押すとそのプール一覧が開きます。'
+   :all+'グループ中 '+n+'件が該当。押すとそのプール一覧が開きます。',
+ baseName:{label:'同一運営',kes:'KES同期',ip:'同一IP'},
+ baseWhy:{
+   label:'コミュニティの名寄せデータベースが、これらを同一運営として分類しています。第三者の判断であって、チェーン上に登録された情報ではありません。',
+   kes:'KES鍵の更新が同期しています。鍵の更新は人が予定を立てて行う作業なので、通常は同じ人か同じ仕組みが全部を回していることを意味します。機材だけでなく運用がつながっている状態です。',
+   ip:'同じアドレスに解決されます。1台のマシン、あるいはその手前の何か1つが全部の応答を返しているので、そこが落ちれば全体が止まります。共用ホスティングやNATでも同じ信号が出るため、相関であって同一所有の証明ではありません。'},
+ clThGroup:'グループ', clThPools:'プール', clThEndpoints:'エンドポイント', clThBlk:'同時に止まる規模', clThState:'現在',
+ clRanked:n=>n+'件を測定', clPerIp:'/箇所',
+ clRun:'全て稼働中', clPart:p=>p+'%が未到達', clDown:'全て未到達',
+ clNote2:'並び順は「同時に止まるブロック生成の割合」であって、運営の良し悪しではありません。ここに並ぶグループはいずれも稼働しています。現在の列は、このスナップショットで見えた状態です。エンドポイント数は上限値で、共有と検出されなかったプールを各自1箇所として数えているため、同じデータセンターに同居している可能性は排除できていません。採点には一切使っていません。',
  domTitle:(n,b)=>'このプールは他の'+(n-1)+'プールと設備を共有しています。その共有点が落ちると'+n+'プールが同時に止まり、合わせて直近ブロックの'+b.toFixed(2)+'%を占めます。規模の記述であって欠陥ではありません。実測では、集中しているグループほど不調率はむしろ低く出ています。採点には使っていません。',
  feeWord:'手数料',
  periods:[['m1','1か月'],['m3','3か月']],
@@ -947,7 +1016,9 @@ ja:{
   {d:'2026-08-30',t:'配色を選べるようにした',
    w:'言語切替の隣のボタンで、ページ全体の配色を変えられるようにした（バイオレット、カルダノブルー、ミント、エンバー、スレート、ローズ）。変わるのは色だけで、レイアウトも列も数値も動かない。意味を持つ色はどの配色でも固定してあるので、緑が到達・ピンクが異常という読み方はそのまま通じる。運営者が自分の行のスクリーンショットを共有するときに、自分らしい見た目を選べるようにという意図。選んだ配色はそのブラウザの中だけに保存され、外へは出ない。'},
   {d:'2026-08-31',t:'同時に止まる規模と、誰がそのグループ分けをしたのか',
-   w:'注意シグナルの列は、どのプールが設備を共有しているかは示していたが、そこに何がどれだけ乗っているかは示していなかった。その共有点が落ちたとき同時に止まるブロック生成の割合を、列の末尾に中立の表示として置いた。最大の障害ドメインは全ブロックの12.28%を担い、上位10で41.1%（プール数では18.7%）になる。並べ替えの軸にも追加した。採点には使っておらず、注意シグナルでもない。実測では集中しているグループほど不調率はむしろ低いので、これは規模の記述であって欠陥の指摘ではない。あわせて、名寄せラベルがどのデータベース由来かを明記するようにした。Koios 経由で3つのDBがこの問いに答えていて、常に一致するわけではない。運営者単位でまとめるものとドメイン単位で分けるものがあり、同じ25プールが片方では1ラベル、もう片方では7ラベルに分かれる。3つを1つの声として出すのは、合意の度合いを実際より強く見せていた。'}
+   w:'注意シグナルの列は、どのプールが設備を共有しているかは示していたが、そこに何がどれだけ乗っているかは示していなかった。その共有点が落ちたとき同時に止まるブロック生成の割合を、列の末尾に中立の表示として置いた。最大の障害ドメインは全ブロックの12.28%を担い、上位10で41.1%（プール数では18.7%）になる。並べ替えの軸にも追加した。採点には使っておらず、注意シグナルでもない。実測では集中しているグループほど不調率はむしろ低いので、これは規模の記述であって欠陥の指摘ではない。あわせて、名寄せラベルがどのデータベース由来かを明記するようにした。Koios 経由で3つのDBがこの問いに答えていて、常に一致するわけではない。運営者単位でまとめるものとドメイン単位で分けるものがあり、同じ25プールが片方では1ラベル、もう片方では7ラベルに分かれる。3つを1つの声として出すのは、合意の度合いを実際より強く見せていた。'},
+  {d:'2026-08-31',t:'2つめの表示：一緒に止まる単位でのランキング',
+   w:'プールのランキングとは別に、クラスター表示を追加した。同じプールを「一度に止まる単位」でまとめ、規模の大きい順に並べる。各行には、なぜそれが一つの単位なのかを明記した。コミュニティのデータベースが同一運営としているのか、KES鍵の更新が同期しているのか、同じアドレスを共有しているのか。これらは意味が違う。鍵の更新は人が予定を立てて行う作業だが、アドレスの共有は機材の話であるため、どれに当たるかを示している。2つ3つを同時に持つ行も多い。同じ集団が別々のアドレス経由で最大7回現れていたので、重なる見方はまとめ、その根拠だけを残った1行に集約した（重複302件を除いて171グループ）。ここに並ぶグループはいずれも稼働している。最後の列はこのスナップショットで見えた状態であって、評価ではない。採点には一切使っていない。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1090,6 +1161,11 @@ ja:{
     ['what','運営者がチェーン上に登録している2つの数字です。固定手数料は、毎エポックの報酬から最初に定額で引かれる分で、プロトコルが最低額（現在170ADA）を定めており、ちょうどその額にしているプールも多くあります。変動手数料は、残りから運営者が受け取る割合です。'],
     ['holder','委任者に届くのは、この2つを引いた後の残りです。固定手数料は小さいプールほど重く効きます。定額なので、エポックの報酬が小さいほど占める割合が大きくなり、大きいプールではほとんど気になりません。片方だけでなく、2つを合わせて読むのが実際的です。'],
     ['note','どちらも採点には使っていません。手数料が高いことは欠陥ではありません。プールの運営には費用がかかり、どこに設定するかは事業上の判断です。ここに出しているのは、運営者自身が登録した額をそのまま表示したものです。']]},
+   {k:'cluster',label:'一緒に止まる単位',s:[
+    ['what','いくつかのプールは同じ運営者によるものだったり、同じアドレスを指していたりします。その共有点が落ちると、後ろにいるプールが同時に止まります。注意シグナル列の末尾の数字は、それが直近のブロック生成の何%にあたるかです。「クラスター」表示にすると、そのグループを規模の大きい順に並べられます。'],
+    ['holder','自分のプールが単独で止まるのか、40プールと一緒に止まるのかは知っておく価値があります。大きいグループが悪いという意味ではありません（ここに並ぶ大手はいずれも問題なく動いています）。ただ、同じグループの2プールに分けて委任することは、独立した2プールに分けることとは別だからです。'],
+    ['chain','上位10グループだけで直近ブロックの41%を生成しています。プール数では全体の2割未満です。これはネットワークの配置がそうなっているという事実であって、個々の運営者についての主張ではありません。'],
+    ['note','採点には使っておらず、注意シグナルでもありません。現時点の実測では、集中しているグループほど安定して動いています（単一エンドポイントのグループはいずれも未到達0%、全プールでは17.9%）。リスクは「落ちやすい」ではなく「落ちたときに一度に多くが止まる」ことです。エンドポイント数は上限値で、共有と検出されなかったプールは同じデータセンターにいても別々に数えています。']]},
    {k:'terms',label:'用語',terms:[
     ['リレー (relay)','プールが外部のノードと繋がるための中継サーバー。ブロックやトランザクションを受け取って他へ渡す、郵便局のような役割。誰でも接続できるよう公開されている。'],
     ['ブロック生成ノード (BP)','実際にブロックを作るノード。チェーン上に登録されるのはリレーのアドレスで、このノードの所在は登録項目に含まれない。そのため、このページの観測対象には入らない。'],
@@ -1477,8 +1553,9 @@ const body=document.querySelector('#body'),q=document.querySelector('#q'),
       sigLabel=document.querySelector('#sigfilterlabel'),langsw=document.querySelector('#langsw'),
       umbody=document.querySelector('#umbody'),feed=document.querySelector('#feed'),
       perbtns=document.querySelector('#perbtns'),
-      themebtn=document.querySelector('#themebtn'),themepop=document.querySelector('#themepop');
-let grade='all',signal=null,group=null;
+      themebtn=document.querySelector('#themebtn'),themepop=document.querySelector('#themepop'),
+      viewsw=document.querySelector('#viewsw'),clubody=document.querySelector('#clubody');
+let grade='all',signal=null,group=null,view='pool';
 // その分類の自然な向き（スコアは高い順、RTTは速い順、TickerはA→Z）を既定にする
 const naturalAsc=k=>!!AXIS(k).firstAsc;
 let dirAsc=naturalAsc('score');
@@ -1547,10 +1624,43 @@ function renderUnmeasured(s){
   return hits.length;
 }
 
+// クラスター表。プールではなく「一緒に止まる単位」で並べる。
+// 採点はしない。規模の記述であって、集中が欠陥という意味ではない。
+function renderClusters(){
+  const t=T(),s=q.value.trim().toLowerCase();
+  const maxBlk=DOMAINS.length?DOMAINS[0].blk:1;
+  const list=DOMAINS.filter(dm=>!s||String(dm.key).toLowerCase().indexOf(s)>=0);
+  document.querySelector('#ranktitle').textContent=t.cluTitle;
+  hint.textContent=t.clHint(list.length,DOMAINS.length);
+  const srcName=k=>t.dGroupSrc[k]||'';
+  clubody.innerHTML=list.map(dm=>{
+    const st=dm.imp>=100?'down':dm.imp>0?'part':'run';
+    const label=dm.kind==='label'?dm.key:(dm.kind==='kes'?t.grpKes+String(dm.key).replace('kes:',''):t.grpIp+dm.key);
+    return '<tr class="clurow" data-dk="'+esc(dm.key)+'">'+
+      '<td><div class="clname">'+esc(label)+'</div>'+
+        '<div class="clbases">'+(dm.bases||[dm.kind]).map(b=>
+          '<span class="clbase '+b+'" title="'+esc(t.baseWhy[b])+'">'+esc(t.baseName[b])+'</span>').join('')+'</div>'+
+        (dm.kind==='label'&&dm.src?'<div class="clsrc">'+esc(srcName(dm.src))+'</div>':'')+'</td>'+
+      '<td class="num"><b>'+dm.n+'</b>'+(dm.ranked<dm.n?'<div class="sub">'+esc(t.clRanked(dm.ranked))+'</div>':'')+'</td>'+
+      '<td class="num"><b>'+dm.ips+'</b><div class="sub">'+(dm.ranked/Math.max(dm.ips,1)).toFixed(1)+esc(t.clPerIp)+'</div></td>'+
+      '<td class="num"><b>'+dm.blk.toFixed(2)+'%</b>'+
+        '<div class="clbar"><i style="width:'+Math.max(2,dm.blk/maxBlk*100).toFixed(1)+'%"></i></div></td>'+
+      '<td><span class="clstate '+st+'">'+esc(st==='run'?t.clRun:st==='part'?t.clPart(dm.imp):t.clDown)+'</span></td>'+
+    '</tr>';
+  }).join('')||'<tr><td colspan="5" style="padding:30px;text-align:center;color:var(--dim)">—</td></tr>';
+  document.querySelector('#clunote').textContent=t.clNote2;
+}
+
 function render(){
   document.querySelector('#backrank').hidden=!group;
   const s=q.value.trim().toLowerCase();
   const umHits=renderUnmeasured(s);
+  const clusters=view==='cluster'&&!group;
+  document.querySelector('#clubox').hidden=!clusters;
+  document.querySelector('#clunote').hidden=!clusters;
+  document.querySelector('.tablebox').hidden=clusters;
+  document.querySelector('.tools').style.display=clusters?'none':'';
+  if(clusters){renderClusters();return;}
   if(group){renderGroup();return;}
   document.querySelector('#ranktitle').textContent=T().rankingTitle;
   const max=+limit.value;
@@ -1636,6 +1746,11 @@ function renderThemes(){
 }
 function closeThemes(){themepop.hidden=true;themebtn.setAttribute('aria-expanded','false');}
 
+function syncViews(){
+  const t=T();
+  viewsw.innerHTML=t.views.map(v=>
+    '<button data-v="'+v[0]+'" aria-pressed="'+(v[0]===view)+'">'+esc(v[1])+'</button>').join('');
+}
 function syncPeriods(){
   const t=T();
   perbtns.innerHTML=t.periods.map(p=>
@@ -1718,7 +1833,7 @@ function applyLang(){
     '</ul>';
 
   document.querySelector('#backrank').textContent=t.backToRanking;
-  syncPeriods();renderThemes();drawCurve();drawHex();syncChips();render();renderGuide();renderFeed();
+  syncViews();syncPeriods();renderThemes();drawCurve();drawHex();syncChips();render();renderGuide();renderFeed();
   Array.prototype.forEach.call(langsw.children,b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));
 }
 
@@ -1757,6 +1872,17 @@ q.addEventListener('input',render);
 limit.addEventListener('change',render);
 sortSel.addEventListener('change',()=>{setAxis(sortSel.value);render();});
 dirBtn.addEventListener('click',()=>{dirAsc=!dirAsc;syncDir();render();});
+viewsw.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-v]');
+  if(!b||b.dataset.v===view)return;
+  view=b.dataset.v;group=null;q.value='';
+  syncViews();render();
+});
+clubody.addEventListener('click',e=>{
+  const r=e.target.closest('.clurow');
+  if(!r)return;
+  setGroup({type:'dom',key:r.dataset.dk});
+});
 perbtns.addEventListener('click',e=>{const b=e.target.closest('.perbtn');
   if(b&&b.dataset.p!==period){period=b.dataset.p;syncPeriods();render();}});
 themebtn.addEventListener('click',e=>{
