@@ -564,7 +564,7 @@ const GROUPS=__GROUPS__;
 const UNMEASURED=__UNMEASURED__;
 // 飽和点 (ADA)。総供給量(45億ADA - 準備金) / k。0 なら取得できなかった日なので目盛りを出さない。
 const SATPOINT=__SATPOINT__;
-// 障害ドメインの一覧。プールではなく「一緒に止まる単位」。
+// 障害ドメインの一覧。プールではなく「一つの集団として見える単位」。
 const DOMAINS=__DOMAINS__;
 
 /* ==================== i18n ==================== */
@@ -607,25 +607,25 @@ en:{
  axisName:{score:'Score', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
    kesSize:'KES cluster', ipSize:'Pools on one IP', relays:'Registered relays',
    hosts:'Reachable hosts', atTip:'Hosts at tip', sat:'Saturation',
-   margin:'Margin', fixed:'Fixed fee', dom:'Could stop at once'},
- domWord:'If down',
+   margin:'Margin', fixed:'Fixed fee', dom:'Group size'},
+ domWord:'Group',
  views:[['pool','Pools'],['cluster','Clusters']],
- cluTitle:'Scale of what could stop at once',
+ cluTitle:'Largest operating groups',
  clHint:(n,all)=>(n===all?all+' groups may be under common management or share infrastructure'
-   :n+' of '+all+' groups match')+'. All are operating normally; the order is the size of one risk - how much could stop at the same time if something ever went wrong at the point they share. Click one to see its pools.',
+   :n+' of '+all+' groups match')+', ordered by their share of recent block production. Click one to see its pools.',
  baseName:{label:'Same operator',kes:'KES in sync',ip:'Same IP'},
  baseWhy:{
    label:'A community grouping database lists these pools as one operator. That is a third-party judgment, not something registered on chain.',
    kes:'Their KES keys rotate together. Key rotation is a manual, scheduled job, so this usually means one person or one process is running all of them - the pools are coupled operationally, not just by hardware.',
    ip:'They resolve to the same address. One machine, or one thing in front of it, answers for all of them - so one outage takes the whole set. Shared hosting and NAT produce the same signal, so it is a correlation and not proof of one owner.'},
- clThGroup:'Group', clThPools:'Pools', clThEndpoints:'Endpoints', clThBlk:'Could stop at once', clThState:'Right now',
+ clThGroup:'Group', clThPools:'Pools', clThEndpoints:'Endpoints', clThBlk:'Share of blocks', clThState:'Right now',
  clRanked:n=>n+' measured', clPerIp:' per endpoint',
  clFrom:src=>'named by '+src,
  clCover:(c,n)=>'('+c+' of '+n+' carry that name)',
  clNoName:'no grouping database names this set',
  clRun:'All running', clPart:p=>p+'% not reached', clDown:'None reached',
- clNote2:'Names come from community-maintained grouping databases, cited per row - they are not registered on chain and are not our judgment. A set with no name there is shown by its KES cluster or shared address instead. Every group listed may be under common management or share a point of infrastructure, and every one of them is operating normally. The order is the size of a single risk: how much block production could stop at the same time if something ever went wrong at the point they share. It is a conditional, not something observed. The state column is what this snapshot saw. Endpoints is an upper bound: pools not detected as sharing an address are counted as having their own, which may still sit in one datacentre. Nothing here is scored.',
- domTitle:(n,b)=>'This pool and '+(n-1)+' others may be under common management, or share a point of infrastructure. They are running normally. What is measured is the size of one risk: if something ever did go wrong at that shared point, this much could stop at the same time - '+b.toFixed(2)+'% of recent block production. Never scored.',
+ clNote2:'Names come from community-maintained grouping databases, cited per row - they are not registered on chain and are not our judgment. A set with no name there is shown by its KES cluster or shared address instead. Every group listed may be under common management or share a point of infrastructure, and every one of them is operating normally. The order is simply their share of recent block production - it says how large a group is, not how well it is run. The state column is what this snapshot saw. Endpoints is an upper bound: pools not detected as sharing an address are counted as having their own, which may still sit in one datacentre. Nothing here is scored.',
+ domTitle:(n,b)=>'This pool and '+(n-1)+' others may be under common management, or share a point of infrastructure. Between them they produce '+b.toFixed(2)+'% of recent blocks. It is the size of the group, nothing more - not a judgment of how it is run, and never scored.',
  feeWord:'Fee',
  periods:[['m1','1M'],['m3','3M']],
  sparkNew:'new',
@@ -709,10 +709,10 @@ en:{
    w:'The stake figure said where a pool is but not where it has been coming from. Each row now carries a small line of the last three months alongside the change over that span, and the column header switches between one month and three. The unit is the epoch, not the day: stake only moves at epoch boundaries, and an epoch is five days, so a week would be a line through two points. Each line is scaled to its own pool, which means the shape can be compared across the table but the height cannot. This is display only and never scored - gaining or losing delegation says nothing about how a pool is run.'},
   {d:'2026-08-30',t:'The page can be recoloured',
    w:'A control next to the language switch changes the palette - violet, Cardano blue, mint, ember, slate or rose. It is a skin and nothing more: no layout, no column, no figure moves, and the colours that carry meaning stay put in every palette, so green still reads as reachable and pink as not, whichever one is chosen. An operator sharing a screenshot of their own row can pick something that looks like theirs. The choice is remembered in the browser it was made in and never leaves it.'},
-  {d:'2026-08-31',t:'How much stops together, and who says these pools go together',
-   w:'The signals column named which pools share infrastructure but never how much rides on it. A neutral figure now sits at the end of that column: if the shared point failed, this is the share of recent block production that would stop at the same moment. The largest failure domain carries 12.28% of blocks; the top ten together carry 41.1% from 18.7% of pools. It is sortable. It is not scored and it is not a warning - the most concentrated groups measured here are currently among the most reliable, so this describes scale, not fault. Separately, the group label now names which database it came from. Three answer this question through Koios and they do not always agree: one groups by operator where another groups by domain, so the same 25 pools can be a single label in one and seven in another. Presenting them as one voice was overstating the agreement.'},
-  {d:'2026-08-31',t:'A second view: clusters, ordered by what stops together',
-   w:'Alongside the pool ranking there is now a cluster view - the same pools grouped into the units that would stop at the same moment, largest first. Each row says why it is one unit: same operator by a community database, KES keys rotating together, or one shared address. Those mean different things and the labels say which, since key rotation is a scheduled human job while a shared address is a machine. Many rows carry two or three at once. The same group appeared up to seven times through different addresses, so overlapping views are folded together and their reasons collected onto the one row that remains - 302 duplicates removed, 171 groups left. Every group listed is operating; the last column is what this snapshot saw, not a verdict. Nothing here is scored.'},
+  {d:'2026-08-31',t:'How large each group is, and who says these pools go together',
+   w:'The signals column named which pools may belong to one group but never how large that group is. A neutral figure now sits at the end of that column: the share of recent block production the group accounts for. The largest carries 12.28% of blocks; the top ten together carry 41.1% from 18.7% of pools. It is sortable. It is not scored and it is not a warning - the most concentrated groups measured here are currently among the most reliable, so this describes scale, not fault. Separately, the group label now names which database it came from. Three answer this question through Koios and they do not always agree: one groups by operator where another groups by domain, so the same 25 pools can be a single label in one and seven in another. Presenting them as one voice was overstating the agreement.'},
+  {d:'2026-08-31',t:'A second view: the largest operating groups',
+   w:'Alongside the pool ranking there is now a cluster view - the same pools grouped into the units they appear to belong to, ordered by share of recent block production. Each row says why it is one unit: same operator by a community database, KES keys rotating together, or one shared address. Those mean different things and the labels say which, since key rotation is a scheduled human job while a shared address is a machine. Many rows carry two or three at once. The same group appeared up to seven times through different addresses, so overlapping views are folded together and their reasons collected onto the one row that remains - 302 duplicates removed, 171 groups left. Every group listed is operating; the last column is what this snapshot saw, not a verdict. Nothing here is scored.'},
   {d:'2026-08-31',t:'Clusters carry the name a database gives them, with the source',
    w:'A cluster shown as kes:2 is not something a reader can look for. Where a grouping database names a set, that name is now used, and the row says which database gave it. Where none does, the KES cluster or the shared address is shown as before and the row says so rather than leaving it unexplained. 134 of 152 groups now carry a name; the 18 without account for 1.4% of block production between them. When a name covers only part of a set the row says how much - one group is 61 pools of which 50 carry the name - because the extra pools are in the same failure domain whether or not anyone has catalogued them. Merging was also wrong before: a label of 50 pools and a KES cluster of 55 sharing 44 between them were listed as two groups, since neither contains the other. Sets overlapping by half or more are now treated as one.'}
  ],
@@ -857,11 +857,11 @@ en:{
     ['what','Two numbers the operator registers on chain. The fixed fee is a flat amount taken from the pool rewards each epoch before anything else - the protocol sets a minimum, currently 170 ADA, and many pools sit exactly on it. The margin is the percentage of what is left that goes to the operator.'],
     ['holder','What reaches delegators is what remains after both. The fixed fee weighs most on a small pool: a flat charge is a large share of a small epoch reward and a negligible share of a large one. It is worth reading the two together rather than either alone.'],
     ['note','Neither is scored, and a higher fee is not a fault - running a pool costs money, and where an operator sets these is an ordinary business decision. What is shown is the figure the operator registered, unaltered.']]},
-   {k:'cluster',label:'If something went wrong',s:[
-    ['what','Some pools may be under one operator, or point at one shared address. They are running normally - that is not in question here. What is measured is the size of a single risk: if something ever did go wrong at the point they have in common, how much would stop at the same time. The figure at the end of the signals column is that share of recent block production, and the Clusters view orders those groups largest first.'],
+   {k:'cluster',label:'Group size',s:[
+    ['what','Some pools may be under one operator, or point at one shared address, which makes them one group rather than several independent pools. The figure at the end of the signals column is the share of recent block production that group accounts for, and the Clusters view orders the groups largest first. It measures how large a group is, and nothing else.'],
     ['holder','Worth knowing mainly for one reason: delegating across two pools in the same group is not the same as delegating across two independent ones, even though it looks identical from the outside. Not because a large group is worse - the largest here are running without trouble.'],
     ['chain','The ten largest groups produce 41% of recent blocks between them, from under a fifth of the pools. That is a property of how the network is arranged, not a claim about any operator.'],
-    ['note','Not scored, and not a warning. It is a conditional - if something went wrong - and nothing here says that anything has, or that it is likely. Measured now, the most concentrated groups are among the most reliable: the single-endpoint ones read 0% unreachable against 17.9% across all pools. Common management is a possibility drawn from third-party grouping databases and from shared addresses, not something registered on chain. The endpoint count is an upper bound, since pools not detected as sharing an address are counted separately even if they sit in one datacentre.']]},
+    ['note','Not scored, and not a warning. Size is not a fault: measured now, the most concentrated groups are among the most reliable - the single-endpoint ones read 0% unreachable against 17.9% across all pools. Common management is a possibility drawn from third-party grouping databases and from shared addresses, not something registered on chain. The endpoint count is an upper bound, since pools not detected as sharing an address are counted separately even if they sit in one datacentre.']]},
    {k:'terms',label:'Terms',terms:[
     ['Relay','A server a pool runs so other nodes can connect to it. It receives blocks and transactions and passes them on, like a post office. It is published so anyone can connect.'],
     ['Block producer (BP)','The node that actually makes blocks. On-chain registration covers relay addresses, not where this node sits, so it falls outside what this page can observe.'],
@@ -922,25 +922,25 @@ ja:{
  axisName:{score:'スコア', rtt:'RTT', stake:'Stake', blocks:'Blocks', ticker:'Ticker',
    kesSize:'KESクラスター', ipSize:'同じIPのプール', relays:'登録リレー',
    hosts:'到達ホスト', atTip:'Tip同期ホスト', sat:'飽和度',
-   margin:'手数料率', fixed:'固定手数料', dom:'同時に止まり得る規模'},
- domWord:'同時',
+   margin:'手数料率', fixed:'固定手数料', dom:'クラスターの規模'},
+ domWord:'集団',
  views:[['pool','プール'],['cluster','クラスター']],
- cluTitle:'同時に止まり得るリスクの大きさ',
+ cluTitle:'運営母体の大きいクラスター',
  clHint:(n,all)=>(n===all?all+'グループが、管理が同一の可能性があるか設備の一部を共有しています'
-   :all+'グループ中 '+n+'件が該当')+'。いずれも通常運用はされています。仮にアクシデントが起こった際に同時に止まり得るリスクの大きさで並べています。押すとそのプール一覧が開きます。',
+   :all+'グループ中 '+n+'件が該当')+'。直近のブロック生成に占める割合が大きい順に並べています。押すとそのプール一覧が開きます。',
  baseName:{label:'同一運営',kes:'KES同期',ip:'同一IP'},
  baseWhy:{
    label:'コミュニティの名寄せデータベースが、これらを同一運営として分類しています。第三者の判断であって、チェーン上に登録された情報ではありません。',
    kes:'KES鍵の更新が同期しています。鍵の更新は人が予定を立てて行う作業なので、通常は同じ人か同じ仕組みが全部を回していることを意味します。機材だけでなく運用がつながっている状態です。',
    ip:'同じアドレスに解決されます。1台のマシン、あるいはその手前の何か1つが全部の応答を返しているので、そこが落ちれば全体が止まります。共用ホスティングやNATでも同じ信号が出るため、相関であって同一所有の証明ではありません。'},
- clThGroup:'グループ', clThPools:'プール', clThEndpoints:'エンドポイント', clThBlk:'同時に止まり得る規模', clThState:'現在',
+ clThGroup:'グループ', clThPools:'プール', clThEndpoints:'エンドポイント', clThBlk:'ブロック生成の割合', clThState:'現在',
  clRanked:n=>n+'件を測定', clPerIp:'/箇所',
  clFrom:src=>src+' による名称',
  clCover:(c,n)=>'（'+n+'件中'+c+'件がこの名称）',
  clNoName:'名寄せデータベースに該当なし',
  clRun:'全て稼働中', clPart:p=>p+'%が未到達', clDown:'全て未到達',
- clNote2:'名称はコミュニティが運営する名寄せデータベース由来で、行ごとに出どころを明記しています。チェーン上に登録された情報ではなく、当ページの判断でもありません。該当が無い集団は、KESクラスターや共有アドレスをそのまま表示しています。ここに並ぶグループは、管理が同一の可能性があるか設備の一部を共有しており、いずれも通常運用はされています。並び順は、仮にその共通箇所でアクシデントが起こった際に同時に止まり得るブロック生成の割合で、条件付きの想定です。実際に起きた事象ではなく、運営の良し悪しでもありません。現在の列は、このスナップショットで見えた状態です。エンドポイント数は上限値で、共有と検出されなかったプールを各自1箇所として数えているため、同じデータセンターに同居している可能性は排除できていません。採点には一切使っていません。',
- domTitle:(n,b)=>'このプールと他の'+(n-1)+'プールは、管理が同一の可能性があるか、設備の一部を共有しています。通常運用はされています。ここで測っているのは、仮にその共有箇所でアクシデントが起こった際に同時に止まり得る規模で、直近ブロックの'+b.toFixed(2)+'%にあたります。採点には使っていません。',
+ clNote2:'名称はコミュニティが運営する名寄せデータベース由来で、行ごとに出どころを明記しています。チェーン上に登録された情報ではなく、当ページの判断でもありません。該当が無い集団は、KESクラスターや共有アドレスをそのまま表示しています。ここに並ぶグループは、管理が同一の可能性があるか設備の一部を共有しており、いずれも通常運用はされています。並び順は直近のブロック生成に占める割合、つまり集団としての規模であって、運営の良し悪しではありません。現在の列は、このスナップショットで見えた状態です。エンドポイント数は上限値で、共有と検出されなかったプールを各自1箇所として数えているため、同じデータセンターに同居している可能性は排除できていません。採点には一切使っていません。',
+ domTitle:(n,b)=>'このプールと他の'+(n-1)+'プールは、管理が同一の可能性があるか、設備の一部を共有しています。合わせて直近ブロックの'+b.toFixed(2)+'%を生成しています。集団としての規模を示すだけで、運営の評価ではありません。採点には使っていません。',
  feeWord:'手数料',
  periods:[['m1','1か月'],['m3','3か月']],
  sparkNew:'新規',
@@ -1024,10 +1024,10 @@ ja:{
    w:'ステーク量の数字は現在地を示すだけで、そこに至る動きが見えなかった。各行に直近3か月の推移を小さな線で表示し、その期間の変化率を併記した。列見出しで1か月と3か月を切り替えられる。単位は日ではなくエポックである。ステークはエポック境界でしか動かず、1エポックは5日なので、1週間では点が2つしか打てないため。線はそれぞれのプール自身の最小〜最大に合わせて描いているので、形は表の中で比べられるが高さは比べられない。表示のみで採点には使っていない。委任が増えたか減ったかは、運営の良し悪しとは別の話であるため。'},
   {d:'2026-08-30',t:'配色を選べるようにした',
    w:'言語切替の隣のボタンで、ページ全体の配色を変えられるようにした（バイオレット、カルダノブルー、ミント、エンバー、スレート、ローズ）。変わるのは色だけで、レイアウトも列も数値も動かない。意味を持つ色はどの配色でも固定してあるので、緑が到達・ピンクが異常という読み方はそのまま通じる。運営者が自分の行のスクリーンショットを共有するときに、自分らしい見た目を選べるようにという意図。選んだ配色はそのブラウザの中だけに保存され、外へは出ない。'},
-  {d:'2026-08-31',t:'同時に止まる規模と、誰がそのグループ分けをしたのか',
-   w:'注意シグナルの列は、どのプールが設備を共有しているかは示していたが、そこに何がどれだけ乗っているかは示していなかった。その共有点が落ちたとき同時に止まるブロック生成の割合を、列の末尾に中立の表示として置いた。最大の障害ドメインは全ブロックの12.28%を担い、上位10で41.1%（プール数では18.7%）になる。並べ替えの軸にも追加した。採点には使っておらず、注意シグナルでもない。実測では集中しているグループほど不調率はむしろ低いので、これは規模の記述であって欠陥の指摘ではない。あわせて、名寄せラベルがどのデータベース由来かを明記するようにした。Koios 経由で3つのDBがこの問いに答えていて、常に一致するわけではない。運営者単位でまとめるものとドメイン単位で分けるものがあり、同じ25プールが片方では1ラベル、もう片方では7ラベルに分かれる。3つを1つの声として出すのは、合意の度合いを実際より強く見せていた。'},
-  {d:'2026-08-31',t:'2つめの表示：一緒に止まる単位でのランキング',
-   w:'プールのランキングとは別に、クラスター表示を追加した。同じプールを「一度に止まる単位」でまとめ、規模の大きい順に並べる。各行には、なぜそれが一つの単位なのかを明記した。コミュニティのデータベースが同一運営としているのか、KES鍵の更新が同期しているのか、同じアドレスを共有しているのか。これらは意味が違う。鍵の更新は人が予定を立てて行う作業だが、アドレスの共有は機材の話であるため、どれに当たるかを示している。2つ3つを同時に持つ行も多い。同じ集団が別々のアドレス経由で最大7回現れていたので、重なる見方はまとめ、その根拠だけを残った1行に集約した（重複302件を除いて171グループ）。ここに並ぶグループはいずれも稼働している。最後の列はこのスナップショットで見えた状態であって、評価ではない。採点には一切使っていない。'},
+  {d:'2026-08-31',t:'クラスターの規模と、誰がそのグループ分けをしたのか',
+   w:'注意シグナルの列は、どのプールが一つの集団に属し得るかは示していたが、その集団がどれだけの規模なのかは示していなかった。その集団が直近のブロック生成に占める割合を、列の末尾に中立の表示として置いた。最大の集団は全ブロックの12.28%を担い、上位10で41.1%（プール数では18.7%）になる。並べ替えの軸にも追加した。採点には使っておらず、注意シグナルでもない。実測では集中しているグループほど不調率はむしろ低いので、これは規模の記述であって欠陥の指摘ではない。あわせて、名寄せラベルがどのデータベース由来かを明記するようにした。Koios 経由で3つのDBがこの問いに答えていて、常に一致するわけではない。運営者単位でまとめるものとドメイン単位で分けるものがあり、同じ25プールが片方では1ラベル、もう片方では7ラベルに分かれる。3つを1つの声として出すのは、合意の度合いを実際より強く見せていた。'},
+  {d:'2026-08-31',t:'2つめの表示：運営母体の大きいクラスター',
+   w:'プールのランキングとは別に、クラスター表示を追加した。同じプールを一つの集団として見える単位でまとめ、直近のブロック生成に占める割合が大きい順に並べる。各行には、なぜそれが一つの単位なのかを明記した。コミュニティのデータベースが同一運営としているのか、KES鍵の更新が同期しているのか、同じアドレスを共有しているのか。これらは意味が違う。鍵の更新は人が予定を立てて行う作業だが、アドレスの共有は機材の話であるため、どれに当たるかを示している。2つ3つを同時に持つ行も多い。同じ集団が別々のアドレス経由で最大7回現れていたので、重なる見方はまとめ、その根拠だけを残った1行に集約した（重複302件を除いて171グループ）。ここに並ぶグループはいずれも稼働している。最後の列はこのスナップショットで見えた状態であって、評価ではない。採点には一切使っていない。'},
   {d:'2026-08-31',t:'クラスターに名寄せDB由来の名称を付け、出どころを明記',
    w:'kes:2 と表示されていても読む人には探しようがない。名寄せデータベースが名前を付けている集団は、その名前で表示し、どのデータベース由来かを行ごとに明記するようにした。該当が無い集団は従来どおりKESクラスターや共有アドレスを出すが、その旨も書く。152グループ中134に名前が付き、残る18件は合計で全ブロックの1.4%。名称が集団の一部しか覆っていない場合は件数も出す（61プール中50件がその名称、など）。カタログに載っているかどうかに関わらず、残りのプールも同じ障害ドメインにいるためである。統合の判定も誤っていた。50プールのラベルと55プールのKESクラスターは44プールが重なる同じ運営だが、どちらも他方の部分集合ではないため2グループとして並んでいた。半分以上重なる集団は同一として扱うようにした。'}
  ],
@@ -1172,11 +1172,11 @@ ja:{
     ['what','運営者がチェーン上に登録している2つの数字です。固定手数料は、毎エポックの報酬から最初に定額で引かれる分で、プロトコルが最低額（現在170ADA）を定めており、ちょうどその額にしているプールも多くあります。変動手数料は、残りから運営者が受け取る割合です。'],
     ['holder','委任者に届くのは、この2つを引いた後の残りです。固定手数料は小さいプールほど重く効きます。定額なので、エポックの報酬が小さいほど占める割合が大きくなり、大きいプールではほとんど気になりません。片方だけでなく、2つを合わせて読むのが実際的です。'],
     ['note','どちらも採点には使っていません。手数料が高いことは欠陥ではありません。プールの運営には費用がかかり、どこに設定するかは事業上の判断です。ここに出しているのは、運営者自身が登録した額をそのまま表示したものです。']]},
-   {k:'cluster',label:'同時に止まり得る規模',s:[
-    ['what','いくつかのプールは、管理が同一の可能性があったり、同じアドレスを指していたりします。これらは通常運用されており、そこを疑っているわけではありません。ここで測っているのは一つのリスクの大きさです。仮に共通している箇所でアクシデントが起こった際、どれだけが同時に止まり得るか。注意シグナル列の末尾の数字が、その直近ブロック生成に占める割合です。「クラスター」表示では、それを大きい順に並べます。'],
+   {k:'cluster',label:'クラスターの規模',s:[
+    ['what','いくつかのプールは、管理が同一の可能性があったり、同じアドレスを指していたりします。つまり独立した複数のプールではなく、一つの集団として見える単位があるということです。注意シグナル列の末尾の数字は、その集団が直近のブロック生成に占める割合です。「クラスター」表示では、それを大きい順に並べます。測っているのは集団の規模だけで、それ以上の意味はありません。'],
     ['holder','知っておく意味は主に一点です。同じグループの2プールに分けて委任することは、独立した2プールに分けることとは別なのに、外からは同じに見えてしまう。大きいグループが悪いという意味ではありません。ここに並ぶ大手はいずれも問題なく動いています。'],
     ['chain','上位10グループだけで直近ブロックの41%を生成しています。プール数では全体の2割未満です。これはネットワークの配置がそうなっているという事実であって、個々の運営者についての主張ではありません。'],
-    ['note','採点には使っておらず、注意シグナルでもありません。「仮にアクシデントが起こった際」という条件付きの話で、実際に何かが起きたとも、起きやすいとも述べていません。現時点の実測では、集中しているグループほどむしろ安定して動いています（単一エンドポイントのグループはいずれも未到達0%、全プールでは17.9%）。管理が同一という点も、第三者の名寄せデータベースや共有アドレスから見た可能性であって、チェーン上に登録された情報ではありません。エンドポイント数は上限値で、共有と検出されなかったプールは同じデータセンターにいても別々に数えています。']]},
+    ['note','採点には使っておらず、注意シグナルでもありません。規模が大きいことは欠点ではなく、現時点の実測ではむしろ集中しているグループほど安定して動いています（単一エンドポイントのグループはいずれも未到達0%、全プールでは17.9%）。管理が同一という点も、第三者の名寄せデータベースや共有アドレスから見た可能性であって、チェーン上に登録された情報ではありません。エンドポイント数は上限値で、共有と検出されなかったプールは同じデータセンターにいても別々に数えています。']]},
    {k:'terms',label:'用語',terms:[
     ['リレー (relay)','プールが外部のノードと繋がるための中継サーバー。ブロックやトランザクションを受け取って他へ渡す、郵便局のような役割。誰でも接続できるよう公開されている。'],
     ['ブロック生成ノード (BP)','実際にブロックを作るノード。チェーン上に登録されるのはリレーのアドレスで、このノードの所在は登録項目に含まれない。そのため、このページの観測対象には入らない。'],
@@ -1393,7 +1393,7 @@ function poolHex(x){
 }
 
 /* ==================== rows ==================== */
-// 同時に止まる規模。1つの障害点が落ちたとき一緒に止まるブロック生成の割合。
+// 集団の規模。同じ運営母体に属し得るプールが占めるブロック生成の割合。
 // シグナル（注意点）ではなく規模の記述なので、色は付けず中立に置く。
 function domPill(x){
   if(x.domBlk==null||x.domN<2)return '';
@@ -1635,7 +1635,7 @@ function renderUnmeasured(s){
   return hits.length;
 }
 
-// クラスター表。プールではなく「一緒に止まる単位」で並べる。
+// クラスター表。プールではなく集団の単位で、規模順に並べる。
 // 採点はしない。規模の記述であって、集中が欠陥という意味ではない。
 function renderClusters(){
   const t=T(),s=q.value.trim().toLowerCase();
