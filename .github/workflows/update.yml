@@ -52,6 +52,15 @@ jobs:
         shell: powershell
         run: ./tools/fetch-foreign-infra.ps1 -OutDir data
 
+      # Upstream counts reachability in hosts but reports the probe target count
+      # in registered entries, and reports endpoint sharing without saying who
+      # with. Both are read off the chain here. Scoring depends on it, so this
+      # one hard-fails too.
+      - name: Count relay hosts and endpoint sharing
+        shell: powershell
+        timeout-minutes: 20
+        run: ./tools/fetch-relay-hosts.ps1 -OutDir data
+
       # The two steps below are informational only - they add citations
       # (a community pool-grouping database, a registration-formatting note)
       # that never affect scoring. Both degrade gracefully on their own if

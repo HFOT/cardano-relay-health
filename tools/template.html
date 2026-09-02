@@ -644,7 +644,7 @@ en:{
  limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','Show all']],
  thPool:'Pool', thHealth:'Health', thStatus:'Status', thReach:'Reachable / At tip',
  thRtt:'Best RTT', thSignals:'Warning signals', thStake:'Stake / Blocks', thTrend:'Stake trend',
- tableNote:'“Reachable” counts hosts that actually answered after expanding the registered endpoints via SRV; “At tip” counts how many of those had caught up to chain tip. Reachable can exceed the probe count because one name may expand to several hosts.',
+ tableNote:'“Reachable” counts hosts that actually answered after expanding the registered endpoints via SRV; “At tip” counts how many of those had caught up to chain tip. Both are counted in hosts, so they are shown against the number of distinct hosts the registered endpoints resolve to rather than against the number of entries: one name may expand to several hosts, and one host may be registered several times over on different ports.',
  noTicker:'(no ticker)', reachWord:'Reachable', probeWord:'probe', atTipWord:'At tip', hostsWord:'hosts',
  noRtt:'not measured', blocksWord:'blocks', delegWord:'delegators',
  hitsSome:(n,shown)=>n.toLocaleString('en-US')+' pools match'+(shown?' (showing top '+shown.toLocaleString('en-US')+')':'')+' — click a row for details',
@@ -714,12 +714,16 @@ en:{
   {d:'2026-08-31',t:'A second view: the largest operating groups',
    w:'Alongside the pool ranking there is now a cluster view - the same pools grouped into the units they appear to belong to, ordered by share of recent block production. Each row says why it is one unit: same operator by a community database, KES keys rotating together, or one shared address. Those mean different things and the labels say which, since key rotation is a scheduled human job while a shared address is a machine. Many rows carry two or three at once. The same group appeared up to seven times through different addresses, so overlapping views are folded together and their reasons collected onto the one row that remains - 302 duplicates removed, 171 groups left. Every group listed is operating; the last column is what this snapshot saw, not a verdict. Nothing here is scored.'},
   {d:'2026-08-31',t:'Clusters carry the name a database gives them, with the source',
-   w:'A cluster shown as kes:2 is not something a reader can look for. Where a grouping database names a set, that name is now used, and the row says which database gave it. Where none does, the KES cluster or the shared address is shown as before and the row says so rather than leaving it unexplained. 134 of 152 groups now carry a name; the 18 without account for 1.4% of block production between them. When a name covers only part of a set the row says how much - one group is 61 pools of which 50 carry the name - because the extra pools are in the same failure domain whether or not anyone has catalogued them. Merging was also wrong before: a label of 50 pools and a KES cluster of 55 sharing 44 between them were listed as two groups, since neither contains the other. Sets overlapping by half or more are now treated as one.'}
+   w:'A cluster shown as kes:2 is not something a reader can look for. Where a grouping database names a set, that name is now used, and the row says which database gave it. Where none does, the KES cluster or the shared address is shown as before and the row says so rather than leaving it unexplained. 134 of 152 groups now carry a name; the 18 without account for 1.4% of block production between them. When a name covers only part of a set the row says how much - one group is 61 pools of which 50 carry the name - because the extra pools are in the same failure domain whether or not anyone has catalogued them. Merging was also wrong before: a label of 50 pools and a KES cluster of 55 sharing 44 between them were listed as two groups, since neither contains the other. Sets overlapping by half or more are now treated as one.'},
+  {d:'2026-09-02',t:'Reachability was being divided by the wrong number',
+   w:'Reachable and at tip are counted in hosts - machines that answered - but they were being divided by the number of entries written into the registration certificate, and those are not the same count. A pool that registers one machine twice, on two ports, has two entries and one host, so its numerator could never reach its denominator however well that machine ran. 180 of the ranked pools, one in seven, sat under a ceiling they had no way to lift; the shortfall was a median 17.5 points of the 35 available. The registered names are now resolved and the denominator is the number of distinct hosts they stand on. It only lowers a denominator that was counting entries and never raises one, so points can come back but no pool can lose any, and a name that expands to several hosts behaves exactly as before. The detail line now gives registered endpoints and distinct hosts as two separate figures. Raised by an operator.'},
+  {d:'2026-09-02',t:'A pool that is not ranked no longer takes points from one that is',
+   w:'Pools with no recent blocks are not measured on any of the six axes and are not ranked - that has been the position here for some time. But sharing was still being deducted against them: a ranked pool lost the endpoint and the IP points because an unranked pool sat on the other side of the share. That is inconsistent, and in the direction that matters, because a certificate can name any address, including one belonging to someone else, and the pool named that way has no way to remove the entry - only the pool that wrote it can. Sharing is now deducted only where another ranked pool is on the other side. Upstream reports endpoint sharing as a yes or no without saying who with, so who is on the other side is now read off the chain here. 11 pools were sharing an endpoint only with pools outside the ranking and 10 were on a shared address with no other ranked pool; 7 of them were losing both. The signals themselves stay on the row, in the neutral pill rather than the warning one, and say that nothing was deducted. Raised by an operator.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
  dBenign:'Why this may still be normal: ',
- dMeta:(x)=>'Observed '+(x.checked||'—')+' · probed '+x.probed+' · reachable '+x.reachable+' · at tip '+x.atTip+' · registered endpoints '+x.entries,
+ dMeta:(x)=>'Observed '+(x.checked||'—')+' · registered endpoints '+x.entries+' · distinct hosts '+(x.denom||x.probed)+' · reachable '+x.reachable+' · at tip '+x.atTip,
  dGroupSrc:{community:'cardano-community/pool_groups',adastat:'AdaStat',balance:'Balance Analytics'},
  dGroupLabel:(g,src)=>'Also listed under the label “'+esc(g)+'” by '+esc(src)+', a community-maintained grouping database, served through <a href="https://api.koios.rest" target="_blank" rel="noopener">Koios</a>. These databases do not always agree - one may group by operator where another groups by domain - so the source is named rather than presented as settled. Shown as a citation, not a judgment we are making.',
  dRelayNote:(v)=>'One registered relay address includes a URL scheme (“'+esc(v.split('://')[0])+'://”): '+esc(v)+'. Most likely left over from copying a config template, not something deliberate.',
@@ -737,15 +741,18 @@ en:{
               redun:'2 or fewer reachable hosts (full marks needs 3+)'},
  rare:{removedAll:'All relays removed',foreign:'Borrowed infra',noRtt:'RTT not measured'},
  rareUnit:(c,p)=>c+' ('+p+')',
- pills:{ep:'Shared endpoint',ip:'Shared IP',kes:'KES in sync',foreign:'Borrowed infra',removed:'All relays removed',none:'No signals'},
+ pills:{ep:'Shared endpoint',ip:'Shared IP',kes:'KES in sync',foreign:'Borrowed infra',removed:'All relays removed',none:'No signals',
+        epU:'Shared endpoint (unranked)',ipU:'Shared IP (unranked)'},
  issues:{
   FOREIGN:()=>'Registers a founding entity bootstrap backbone as its own relay',
   TIP_ZERO:()=>'No reachable host was at chain tip when probed',
   TIP_PARTIAL:()=>'Some reachable hosts were not at chain tip',
-  REACH_PARTIAL:(a,b)=>'Only part of the registered/expanded probe targets answered ('+a+'/'+b+')',
+  REACH_PARTIAL:(a,b)=>'Only part of this pool’s distinct hosts answered ('+a+'/'+b+')',
   SINGLE_HOST:()=>'Only one reachable host observed, so redundancy is limited',
   EP_SHARED:()=>'Shares an endpoint string with another pool',
   IP_SHARED:(a)=>'Shares a resolved IP with other pools (up to '+a+' pools)',
+  EP_SHARED_UNRANKED:()=>'Shares an endpoint string, but only with pools outside the ranking - not deducted',
+  IP_SHARED_UNRANKED:(a)=>'Shares a resolved IP (up to '+a+' pools), but with no other ranked pool - not deducted',
   KES_CLUSTER:(a,b)=>'Belongs to a synchronised KES rotation cluster (cluster '+a+', '+b+' pools)',
   REMOVED_ALL:()=>'Previously removed all registered relays',
   RTT_HIGH:(a)=>'Best RTT still exceeds one second ('+a+' ms)'
@@ -767,8 +774,8 @@ en:{
  rkCandidate:'Risk candidate', rkCondition:'Detection condition', rkMax:'Max deduction',
  rkWhy:'Why it could be a risk', rkBenign:'Could be normal / false positive',
  risks:[
-  ['Unreachable or partially reachable','reachable hosts / probed below 100%','−17.5','Fewer entry points for external peers, narrowing routing options during an incident','Firewall, rate limit, restart, or a block affecting only the vantage point'],
-  ['Not at tip / partially synced','at-tip hosts / probed below 100%','−17.5','Reachable but behind chain tip raises questions about relay quality and sync state','Latency at the moment of measurement, or a timing gap in tip detection'],
+  ['Unreachable or partially reachable','reachable hosts / distinct hosts below 100%','−17.5','Fewer entry points for external peers, narrowing routing options during an incident','Firewall, rate limit, restart, or a block affecting only the vantage point'],
+  ['Not at tip / partially synced','at-tip hosts / distinct hosts below 100%','−17.5','Reachable but behind chain tip raises questions about relay quality and sync state','Latency at the moment of measurement, or a timing gap in tip detection'],
   ['Insufficient relay redundancy','2 or fewer reachable hosts','−15','Can become a single point of failure or lose connectivity during maintenance','Private relays and internal topology are not observable'],
   ['Shared endpoint','several pools registering the same endpoint string','−10','May depend on the same failure point, relay service, or shared management','Using a third-party service does not imply common ownership'],
   ['Shared resolved IP','different names resolving to the same IP:port','−10','If the substance is the same, an outage, attack or fault can spread at once','Could be NAT, load balancing, or shared hosting'],
@@ -779,7 +786,7 @@ en:{
  ],
  riskFootnote:'Reference only, no direct deduction: same domain, same ASN, same cloud provider, similar tickers, stake concentration. These easily sweep ordinary users and unrelated pools into the same group, so without further evidence they are not used to deduct points.',
  methodTitle:'Scoring method and caveats',
- method:'<p><b>Reachability & tip sync — 35 pts</b>: reachable/probed and at-tip/probed, 17.5 each.<br><b>Redundancy — 15 pts</b>: 3+ reachable hosts = 15, 2 = 11, 1 = 5.<br><b>Infrastructure & operational independence — 25 pts</b>: endpoint not shared 10, IP not shared 10, no synchronised KES cluster 5.<br><b>No borrowing — 10 pts</b>: awarded when no founding-entity bootstrap backbone is registered.<br><b>Registration continuity — 10 pts</b>: awarded when all relays were never removed in the past.<br><b>RTT — 5 pts</b>: ≤150 ms = 5, ≤300 = 4, ≤600 = 3, ≤1000 = 2, above that = 1.</p><p>Shared information is not proof that operators are the same, and RTT and connectivity results depend on the vantage point and the moment of measurement. Do not treat this ranking as the sole basis for a delegation decision.</p>',
+ method:'<p><b>Reachability & tip sync — 35 pts</b>: reachable hosts / distinct hosts and at-tip hosts / distinct hosts, 17.5 each. The denominator is how many distinct hosts the registered endpoints resolve to, not how many entries were registered, so registering one machine twice on two ports neither helps nor hurts.<br><b>Redundancy — 15 pts</b>: 3+ reachable hosts = 15, 2 = 11, 1 = 5.<br><b>Infrastructure & operational independence — 25 pts</b>: endpoint not shared 10, IP not shared 10, no synchronised KES cluster 5. Sharing is only deducted when another <i>ranked</i> pool is on the other side. A pool with no recent blocks is not measured on any of these axes, so it is not treated as a reason to take points from a pool that is - particularly since a certificate can name someone else’s address and the pool named that way cannot remove it.<br><b>No borrowing — 10 pts</b>: awarded when no founding-entity bootstrap backbone is registered.<br><b>Registration continuity — 10 pts</b>: awarded when all relays were never removed in the past.<br><b>RTT — 5 pts</b>: ≤150 ms = 5, ≤300 = 4, ≤600 = 3, ≤1000 = 2, above that = 1.</p><p>Shared information is not proof that operators are the same, and RTT and connectivity results depend on the vantage point and the moment of measurement. Do not treat this ranking as the sole basis for a delegation decision.</p>',
  footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Group labels via cardano-community/pool_groups · Generated 2026-08-28',
  guide:{
   fab:'Guide for holders',
@@ -868,7 +875,7 @@ en:{
     ['Tip','The newest block on the chain. At tip means a node has caught up to it.'],
     ['Endpoint','A relay address: a domain name or IP, plus a port number, registered on chain by the pool.'],
     ['Registration','The relay addresses a pool writes into its on-chain certificate. Other nodes read them to find somewhere to connect. Any address can be listed, and the chain cannot verify who holds it - and relays that are run but never registered do not appear at all.'],
-    ['Host','An individual server reached by resolving an endpoint name. One name can expand to several hosts, which is why reachable hosts can outnumber registered entries.'],
+    ['Host','An individual server reached by resolving an endpoint name. Entries and hosts are not the same count in either direction: one name can expand to several hosts, which is why reachable hosts can outnumber registered entries, and one host can be registered several times over on different ports, which is why a pool can have more entries than hosts.'],
     ['Probe','Actually attempting a connection to see whether an answer comes back. Reachable, At tip and RTT here all come from that, as observed and published by ABCDE.'],
     ['RTT','Round Trip Time - how long a connection takes to answer, in milliseconds.'],
     ['KES','The key used to sign blocks. It is required to be rotated periodically for safety.'],
@@ -959,7 +966,7 @@ ja:{
  limits:[['50','Top 50'],['100','Top 100'],['250','Top 250'],['9999','すべて表示']],
  thPool:'Pool', thHealth:'Health', thStatus:'ステータス', thReach:'到達 / Tip同期',
  thRtt:'Best RTT', thSignals:'注意シグナル', thStake:'Stake / Blocks', thTrend:'ステーク推移',
- tableNote:'「到達」は登録endpointをSRV展開して実際に応答したホスト数、「Tip同期」はそのうちchain tipに追いついていたホスト数です。1つの名前が複数ホストへ展開されるため、probe対象数より到達数が多くなることがあります。',
+ tableNote:'「到達」は登録endpointをSRV展開して実際に応答したホスト数、「Tip同期」はそのうちchain tipに追いついていたホスト数です。どちらもホスト単位なので、分母は登録エントリ数ではなく、登録endpointが解決する実ホスト数を用いています。1つの名前が複数ホストへ展開されることもあれば、1台を別ポートで複数回登録していることもあるためです。',
  noTicker:'（Ticker未設定）', reachWord:'到達', probeWord:'probe', atTipWord:'Tip同期', hostsWord:'ホスト',
  noRtt:'計測なし', blocksWord:'blocks', delegWord:'委任者',
  hitsSome:(n,shown)=>n.toLocaleString('ja-JP')+' 件が該当'+(shown?'（上位 '+shown.toLocaleString('ja-JP')+' 件を表示）':'')+' — 行をクリックすると詳細が開きます',
@@ -1029,12 +1036,16 @@ ja:{
   {d:'2026-08-31',t:'2つめの表示：運営母体の大きいクラスター',
    w:'プールのランキングとは別に、クラスター表示を追加した。同じプールを一つの集団として見える単位でまとめ、直近のブロック生成に占める割合が大きい順に並べる。各行には、なぜそれが一つの単位なのかを明記した。コミュニティのデータベースが同一運営としているのか、KES鍵の更新が同期しているのか、同じアドレスを共有しているのか。これらは意味が違う。鍵の更新は人が予定を立てて行う作業だが、アドレスの共有は機材の話であるため、どれに当たるかを示している。2つ3つを同時に持つ行も多い。同じ集団が別々のアドレス経由で最大7回現れていたので、重なる見方はまとめ、その根拠だけを残った1行に集約した（重複302件を除いて171グループ）。ここに並ぶグループはいずれも稼働している。最後の列はこのスナップショットで見えた状態であって、評価ではない。採点には一切使っていない。'},
   {d:'2026-08-31',t:'クラスターに名寄せDB由来の名称を付け、出どころを明記',
-   w:'kes:2 と表示されていても読む人には探しようがない。名寄せデータベースが名前を付けている集団は、その名前で表示し、どのデータベース由来かを行ごとに明記するようにした。該当が無い集団は従来どおりKESクラスターや共有アドレスを出すが、その旨も書く。152グループ中134に名前が付き、残る18件は合計で全ブロックの1.4%。名称が集団の一部しか覆っていない場合は件数も出す（61プール中50件がその名称、など）。カタログに載っているかどうかに関わらず、残りのプールも同じ障害ドメインにいるためである。統合の判定も誤っていた。50プールのラベルと55プールのKESクラスターは44プールが重なる同じ運営だが、どちらも他方の部分集合ではないため2グループとして並んでいた。半分以上重なる集団は同一として扱うようにした。'}
+   w:'kes:2 と表示されていても読む人には探しようがない。名寄せデータベースが名前を付けている集団は、その名前で表示し、どのデータベース由来かを行ごとに明記するようにした。該当が無い集団は従来どおりKESクラスターや共有アドレスを出すが、その旨も書く。152グループ中134に名前が付き、残る18件は合計で全ブロックの1.4%。名称が集団の一部しか覆っていない場合は件数も出す（61プール中50件がその名称、など）。カタログに載っているかどうかに関わらず、残りのプールも同じ障害ドメインにいるためである。統合の判定も誤っていた。50プールのラベルと55プールのKESクラスターは44プールが重なる同じ運営だが、どちらも他方の部分集合ではないため2グループとして並んでいた。半分以上重なる集団は同一として扱うようにした。'},
+  {d:'2026-09-02',t:'到達性の分母が間違っていた',
+   w:'「到達」と「Tip同期」は応答したホスト（サーバー）の数を数えているが、割る側には登録証明書に書かれたエントリ数を使っていた。この2つは同じ数ではない。1台を2つのポートで登録していればエントリは2でホストは1なので、そのマシンがどれだけ正常に動いていても分子は分母に届かない。ランキング対象のうち180プール、7件に1件が、自力では外せない天井の下にいた。届かなかった点は35点中の中央値17.5点。登録名を解決し、実際に立っているホスト数を分母に用いるようにした。エントリ数を数えていた分母を下げるだけで上げることはないため、戻る点はあっても下がるプールはない。1つの名前が複数ホストに展開される側の挙動は従来どおり。詳細行では登録endpoint数と実ホスト数を別々に表示する。運営者からの指摘による。'},
+  {d:'2026-09-02',t:'ランキング対象外のプールが、対象プールの点を引かないようにした',
+   w:'直近のブロック生成がないプールは6軸のどれも測っておらず、順位も付けていない。これは以前からの方針である。しかし共有による減点だけは、その対象外プールを相手にしても行われていた。採点対象のプールが、対象外プールと共有しているというだけでendpointとIPの点を失っていた。これは筋が通らないうえ、方向として悪い。証明書には他人のアドレスを含めどんなアドレスでも書けてしまい、書かれた側にはそれを消す手段がなく、消せるのは書いた側だけだからである。共有の減点は、相手も採点対象プールである場合に限るようにした。上流は endpoint 共有を「あり／なし」でしか出さず相手が誰かを示さないため、相手の特定はチェーンから自前で行っている。対象外プールのみと endpoint を共有していたプールが11件、他に採点対象プールのいない共有アドレス上にいたプールが10件、うち両方を失っていたのが7件。シグナル自体は行に残し、警告色ではなく中立の表示にして「減点なし」と明記する。運営者からの指摘による。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
  dBenign:'正常である可能性：',
- dMeta:(x)=>'観測時刻 '+(x.checked||'—')+' ／ probe対象 '+x.probed+' · 到達 '+x.reachable+' · Tip同期 '+x.atTip+' · 登録endpoint '+x.entries,
+ dMeta:(x)=>'観測時刻 '+(x.checked||'—')+' ／ 登録endpoint '+x.entries+' · 実ホスト数 '+(x.denom||x.probed)+' · 到達 '+x.reachable+' · Tip同期 '+x.atTip,
  dGroupSrc:{community:'cardano-community/pool_groups',adastat:'AdaStat',balance:'Balance Analytics'},
  dGroupLabel:(g,src)=>'コミュニティが運営する名寄せデータベース '+esc(src)+'（<a href="https://api.koios.rest" target="_blank" rel="noopener">Koios</a> 経由）では「'+esc(g)+'」として分類されています。これらのデータベースは常に一致するわけではなく、運営者単位でまとめるものとドメイン単位で分けるものがあるため、どこ由来かを明記しています。引用として掲載しているだけで、当ページ自体の判断ではありません。',
  dRelayNote:(v)=>'登録されているリレーアドレスの1つに、URLスキーム（「'+esc(v.split('://')[0])+'://」）が含まれています：'+esc(v)+'。設定テンプレートをコピーした際の残りなど、単純な表記上の特徴である可能性が高く、意図を断定するものではありません。',
@@ -1052,15 +1063,18 @@ ja:{
               redun:'到達ホストが2台以下（満点は3台以上）'},
  rare:{removedAll:'全relay削除歴',foreign:'infra借用',noRtt:'RTT計測なし'},
  rareUnit:(c,p)=>c+'件 ('+p+')',
- pills:{ep:'endpoint共有',ip:'IP共有',kes:'KES同期',foreign:'infra借用',removed:'全relay削除歴',none:'シグナルなし'},
+ pills:{ep:'endpoint共有',ip:'IP共有',kes:'KES同期',foreign:'infra借用',removed:'全relay削除歴',none:'シグナルなし',
+        epU:'endpoint共有（対象外と）',ipU:'IP共有（対象外と）'},
  issues:{
   FOREIGN:()=>'創設組織のbootstrap backboneを自プールのrelayとして登録',
   TIP_ZERO:()=>'プローブ時にTip同期した到達ホストが0',
   TIP_PARTIAL:()=>'到達ホストの一部がTip同期していない',
-  REACH_PARTIAL:(a,b)=>'登録・展開されたprobe対象の一部のみ到達 ('+a+'/'+b+')',
+  REACH_PARTIAL:(a,b)=>'実ホストの一部のみ到達 ('+a+'/'+b+')',
   SINGLE_HOST:()=>'観測上の到達ホストが1台のみで冗長性が限定的',
   EP_SHARED:()=>'他プールと同じendpoint文字列を共有',
   IP_SHARED:(a)=>'他プールと解決先IPを共有（最大'+a+'プール）',
+  EP_SHARED_UNRANKED:()=>'endpoint文字列を共有しているが、相手はランキング対象外のみ（減点なし）',
+  IP_SHARED_UNRANKED:(a)=>'解決先IPを共有（最大'+a+'プール）だが、他に採点対象プールはいない（減点なし）',
   KES_CLUSTER:(a,b)=>'KESローテーション同期クラスターに所属（cluster '+a+'、'+b+'プール）',
   REMOVED_ALL:()=>'過去に登録relayを全て削除した履歴',
   RTT_HIGH:(a)=>'最良RTTでも1秒超 ('+a+' ms)'
@@ -1082,8 +1096,8 @@ ja:{
  rkCandidate:'リスク候補', rkCondition:'検出条件', rkMax:'最大減点',
  rkWhy:'リスクとなり得る理由', rkBenign:'正常・誤判定の可能性',
  risks:[
-  ['到達不能・部分到達','reachable hosts / probed が100%未満','−17.5','外部peerが接続できる入口が減り、障害時の経路選択肢が狭まる可能性','firewall、rate limit、再起動、観測元だけの遮断'],
-  ['Tip未同期・部分同期','at-tip hosts / probed が100%未満','−17.5','到達できてもchain tipから遅れていればrelay品質や同期状態に懸念','測定瞬間の遅延、tip判定の時間差'],
+  ['到達不能・部分到達','到達ホスト数 / 実ホスト数 が100%未満','−17.5','外部peerが接続できる入口が減り、障害時の経路選択肢が狭まる可能性','firewall、rate limit、再起動、観測元だけの遮断'],
+  ['Tip未同期・部分同期','Tip同期ホスト数 / 実ホスト数 が100%未満','−17.5','到達できてもchain tipから遅れていればrelay品質や同期状態に懸念','測定瞬間の遅延、tip判定の時間差'],
   ['リレー冗長性不足','到達ホストが2以下','−15','単一障害点や保守時の接続性低下につながる可能性','非公開relayや内部構成は観測できない'],
   ['同一endpoint共有','複数poolが同じ登録endpoint文字列','−10','同じ障害点・relayサービス・共通管理へ依存する可能性','第三者サービスの利用だけで、同一所有とは限らない'],
   ['解決先IP共有','異なる名前が同一IP:portへ解決','−10','名前が別でも実体が同じなら、停止・攻撃・障害が同時波及し得る','NAT、負荷分散、共有ホスティングの可能性'],
@@ -1094,7 +1108,7 @@ ja:{
  ],
  riskFootnote:'参考のみ・直接減点なし：同一ドメイン、同一ASN、同一クラウド事業者、Ticker類似、Stake集中。これらは一般利用者や無関係なpoolまで同一グループ扱いしやすいため、追加証拠なしではランキング減点に使いません。',
  methodTitle:'採点方法と注意点',
- method:'<p><b>到達性・Tip同期 35点</b>：reachable/probed と at-tip/probed を各17.5点。<br><b>冗長性 15点</b>：到達ホスト3以上=15、2=11、1=5。<br><b>インフラ・運用独立性 25点</b>：endpoint非共有10、IP非共有10、KES同期クラスターなし5。<br><b>非借用 10点</b>：founding-entity bootstrap backboneを登録していなければ加点。<br><b>登録継続性 10点</b>：過去に全relayを削除した履歴がなければ加点。<br><b>RTT 5点</b>：≤150ms=5、≤300=4、≤600=3、≤1000=2、それ以上=1。</p><p>共有情報は運営者同一の証明ではなく、RTTと疎通結果は観測地点・時刻に依存します。順位は委任判断の唯一の根拠にはしないでください。</p>',
+ method:'<p><b>到達性・Tip同期 35点</b>：到達ホスト数／実ホスト数 と Tip同期ホスト数／実ホスト数 を各17.5点。分母は登録エントリ数ではなく、登録endpointが解決する実ホスト数です。1台を2ポートで登録しても有利にも不利にもなりません。<br><b>冗長性 15点</b>：到達ホスト3以上=15、2=11、1=5。<br><b>インフラ・運用独立性 25点</b>：endpoint非共有10、IP非共有10、KES同期クラスターなし5。共有による減点は、相手も<i>ランキング対象</i>プールである場合に限ります。直近のブロック生成がないプールはどの軸も測っていないため、測っているプールの点を引く理由には使いません。証明書には他人のアドレスも書けてしまい、書かれた側にそれを消す手段がないためでもあります。<br><b>非借用 10点</b>：founding-entity bootstrap backboneを登録していなければ加点。<br><b>登録継続性 10点</b>：過去に全relayを削除した履歴がなければ加点。<br><b>RTT 5点</b>：≤150ms=5、≤300=4、≤600=3、≤1000=2、それ以上=1。</p><p>共有情報は運営者同一の証明ではなく、RTTと疎通結果は観測地点・時刻に依存します。順位は委任判断の唯一の根拠にはしないでください。</p>',
  footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Group labels via cardano-community/pool_groups · Generated 2026-08-28',
  guide:{
   fab:'ホルダーへの簡単解説',
@@ -1183,7 +1197,7 @@ ja:{
     ['Tip（チェーンの先端）','ブロックチェーンのいちばん新しいブロックのこと。「Tip同期」は、そのノードが最新まで追いついている状態。'],
     ['endpoint（エンドポイント）','リレーの住所。ドメイン名かIPアドレスと、ポート番号の組み合わせ。プールがチェーン上に登録する。'],
     ['登録（registration）','プールがチェーン上の証明書に書いたリレーの住所。他ノードはこれを見て接続先を探す。ただし任意のアドレスを書けて、持ち主が本人かを確かめる方法はない。逆に、運用していても登録しないリレーもある。'],
-    ['ホスト','endpointの名前を実際に引いた結果たどり着く、個々のサーバー。1つの名前が複数のホストに展開されることがあるため、到達ホスト数が登録数より多くなることがある。'],
+    ['ホスト','endpointの名前を実際に引いた結果たどり着く、個々のサーバー。登録エントリ数とホスト数は双方向にずれる。1つの名前が複数ホストに展開されれば到達ホスト数が登録数より多くなり、逆に1台を別ポートで複数回登録していればエントリ数のほうが多くなる。'],
     ['probe（プローブ）','実際に接続を試して、応答が返るか確かめる行為。このページの「到達」「Tip同期」「RTT」はその結果で、観測を行っているのはABCDE。'],
     ['RTT','Round Trip Time。接続してから応答が返るまでの往復時間。単位はミリ秒。'],
     ['KES','ブロックに署名するための鍵。安全のため定期的に更新（ローテーション）することが決められている。'],
@@ -1403,10 +1417,13 @@ function domPill(x){
 }
 function signalsHtml(x){
   const p=[],P=T().pills;
-  if(x.shared)    p.push('<span class="pill warn">'+esc(P.ep)+'</span>');
-  if(x.sharedIp)  p.push(x.ipKey
-                    ? '<button class="pill warn" data-gtype="ip" data-gkey="'+esc(x.ipKey)+'">'+esc(P.ip)+' ×'+x.sharedIpPools+'</button>'
-                    : '<span class="pill warn">'+esc(P.ip)+' ×'+x.sharedIpPools+'</span>');
+  /* A signal that costs no points is still a fact worth showing, so it stays in
+     the row - but in the neutral pill, not the warning one. */
+  if(x.shared)    p.push('<span class="pill '+(x.epScored===false?'dom':'warn')+'">'+esc(x.epScored===false?P.epU:P.ep)+'</span>');
+  if(x.sharedIp){ const ic=(x.ipScored===false?'dom':'warn'), il=esc(x.ipScored===false?P.ipU:P.ip)+' ×'+x.sharedIpPools;
+                  p.push(x.ipKey
+                    ? '<button class="pill '+ic+'" data-gtype="ip" data-gkey="'+esc(x.ipKey)+'">'+il+'</button>'
+                    : '<span class="pill '+ic+'">'+il+'</span>'); }
   if(x.kesLinked) p.push('<button class="pill warn" data-gtype="kes" data-gkey="'+esc(x.kesCluster)+'">'+esc(P.kes)+' ×'+x.kesClusterSize+'</button>');
   if(x.foreign)   p.push('<span class="pill bad">'+esc(P.foreign)+'</span>');
   if(x.removedAll)p.push('<span class="pill bad">'+esc(P.removed)+'</span>');
@@ -1510,7 +1527,7 @@ function rowHtml(x){
     '<td><div class="scorecell"><span class="badge '+x.grade+'">'+x.grade+'</span>'+
       '<span class="scoreval c'+x.grade+'">'+x.score+'</span><span class="sub">'+t.scoreOf+'</span></div>'+miniBar(x)+'</td>'+
     '<td><span class="st '+STCLS[x._st]+'"><span class="dot"></span>'+esc(t.statusLabel[x._st])+'</span></td>'+
-    '<td class="num"><div>'+esc(t.reachWord)+' <b>'+x.reachable+'</b> <span class="sub">/ '+esc(t.probeWord)+' '+x.probed+'</span></div>'+
+    '<td class="num"><div>'+esc(t.reachWord)+' <b>'+x.reachable+'</b> <span class="sub">/ '+(x.denom||x.probed)+' '+esc(t.hostsWord)+'</span></div>'+
       '<div class="sub">'+esc(t.atTipWord)+' <b class="'+tipCls+'">'+x.atTip+'</b> '+esc(t.hostsWord)+'</div></td>'+
     '<td class="num">'+(x.rtt==null?'<span class="sub">'+esc(t.noRtt)+'</span>':'<b>'+fmt(x.rtt)+'</b> <span class="sub">ms</span>')+'</td>'+
     '<td>'+signalsHtml(x)+'</td>'+
