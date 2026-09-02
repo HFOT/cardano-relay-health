@@ -655,13 +655,15 @@ en:{
  grpHint:(n,ranked)=>'All '+n+' pools sharing this'+(ranked<n?', including '+(n-ranked)+' outside the ranking':'')+'. Click a row for details.',
  backToRanking:'\u2190 Back to the ranking',
  umTitle:'Pools this page cannot measure',
- umLead:n=>'These '+n+' pools minted blocks in the last 30 epochs, but this page found no address to probe, so none of the six axes could be measured. They are not scored and not ranked. Their absence from the table above is a limit of how this page measures, not a finding about them.',
+ umLead:n=>'These '+n+' pools minted blocks in the last 30 epochs, but this page had nothing it could probe - either no address at all, or none that the probe was able to try - so none of the six axes could be measured. They are not scored and not ranked. Their absence from the table above is a limit of how this page measures, not a finding about them.',
  umWhy:'A registered relay is how other nodes find a pool. Blocks can still be produced and propagated without one, and these pools are producing them. Some operators leave relays unregistered on purpose — to limit exposure to denial-of-service, or for privacy. Others use a third-party relay service registered under a different name, and there are ordinary configuration reasons too. From outside the chain these cannot be told apart, so nothing here should be read as a fault.',
  umThPool:'Pool', umThHistory:'Registration history', umThBlocks:'Blocks (30 epochs)', umThStake:'Stake',
- umReason:{NO_RELAY:'No relay registered', NOT_PROBED:'Registered, not probed'},
+ umReason:{NO_RELAY:'No relay registered', NOT_PROBED:'Registered, not probed',
+           NOT_TESTABLE:'Registered, but no endpoint could be tested'},
  umNever:'No relay has been registered',
  umRemoved:d=>'Relays were registered before; none since '+d,
  umWas:'Relays were registered at some earlier point',
+ umHas:n=>'Registered now'+(n?' ('+n+')':'')+', but the probe could not try any of them',
  umHitsSome:n=>n+' of these match your search',
  umAlsoHere:n=>' · '+n+' more below, in the section this page cannot measure',
  umOnly:n=>'No ranked pools match, but '+(n===1?'one is':n+' are')+' listed below, in the section this page cannot measure.',
@@ -718,7 +720,9 @@ en:{
   {d:'2026-09-02',t:'Reachability was being divided by the wrong number',
    w:'Reachable and at tip are counted in hosts - machines that answered - but they were being divided by the number of entries written into the registration certificate, and those are not the same count. A pool that registers one machine twice, on two ports, has two entries and one host, so its numerator could never reach its denominator however well that machine ran. 180 of the ranked pools, one in seven, sat under a ceiling they had no way to lift; the shortfall was a median 17.5 points of the 35 available. The registered names are now resolved and the denominator is the number of distinct hosts they stand on. It only lowers a denominator that was counting entries and never raises one, so points can come back but no pool can lose any, and a name that expands to several hosts behaves exactly as before. The detail line now gives registered endpoints and distinct hosts as two separate figures. Raised by an operator.'},
   {d:'2026-09-02',t:'A pool that is not ranked no longer takes points from one that is',
-   w:'Pools with no recent blocks are not measured on any of the six axes and are not ranked - that has been the position here for some time. But sharing was still being deducted against them: a ranked pool lost the endpoint and the IP points because an unranked pool sat on the other side of the share. That is inconsistent, and in the direction that matters, because a certificate can name any address, including one belonging to someone else, and the pool named that way has no way to remove the entry - only the pool that wrote it can. Sharing is now deducted only where another ranked pool is on the other side. Upstream reports endpoint sharing as a yes or no without saying who with, so who is on the other side is now read off the chain here. 11 pools were sharing an endpoint only with pools outside the ranking and 10 were on a shared address with no other ranked pool; 7 of them were losing both. The signals themselves stay on the row, in the neutral pill rather than the warning one, and say that nothing was deducted. Raised by an operator.'}
+   w:'Pools with no recent blocks are not measured on any of the six axes and are not ranked - that has been the position here for some time. But sharing was still being deducted against them: a ranked pool lost the endpoint and the IP points because an unranked pool sat on the other side of the share. That is inconsistent, and in the direction that matters, because a certificate can name any address, including one belonging to someone else, and the pool named that way has no way to remove the entry - only the pool that wrote it can. Sharing is now deducted only where another ranked pool is on the other side. Upstream reports endpoint sharing as a yes or no without saying who with, so who is on the other side is now read off the chain here. 11 pools were sharing an endpoint only with pools outside the ranking and 10 were on a shared address with no other ranked pool; 7 of them were losing both. The signals themselves stay on the row, in the neutral pill rather than the warning one, and say that nothing was deducted. Raised by an operator.'},
+  {d:'2026-09-03',t:'Tip sync is now asked only of the hosts that answered',
+   w:'Reachability and tip sync were both divided by the same number, and they are not the same question. Whether an endpoint answered can be asked of every address a pool registered. Whether it was at chain tip can only be asked of the ones that did answer - for an endpoint that stayed silent there is no sync state to observe, and a zero was being recorded as though there were. So a single silent endpoint was subtracting from both halves of a 35-point block, and the two halves were never the independent measurements described here. Tip is now measured over reachable hosts. 229 pools gain, a median 8.75 points; none loses any. Two smaller corrections of the same kind went in alongside it. Where an endpoint is reachable only over IPv6 and the probe has none, upstream records it as untested rather than unreachable and publishes that count in its own column - a column this page had never read, so something explicitly marked as not tested was sitting in the denominator. And a pool whose every endpoint was in that state was being ranked on 45 of the 100 points with the other 55 unmeasurable; it now sits in the section for pools that could not be measured, which is where the same situation already sent pools with no address to probe. Raised by an operator asking how reachability is tested.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -775,7 +779,7 @@ en:{
  rkWhy:'Why it could be a risk', rkBenign:'Could be normal / false positive',
  risks:[
   ['Unreachable or partially reachable','reachable hosts / distinct hosts below 100%','−17.5','Fewer entry points for external peers, narrowing routing options during an incident','Firewall, rate limit, restart, or a block affecting only the vantage point'],
-  ['Not at tip / partially synced','at-tip hosts / distinct hosts below 100%','−17.5','Reachable but behind chain tip raises questions about relay quality and sync state','Latency at the moment of measurement, or a timing gap in tip detection'],
+  ['Not at tip / partially synced','at-tip hosts / reachable hosts below 100%','−17.5','Reachable but behind chain tip raises questions about relay quality and sync state','Latency at the moment of measurement, or a timing gap in tip detection'],
   ['Insufficient relay redundancy','2 or fewer reachable hosts','−15','Can become a single point of failure or lose connectivity during maintenance','Private relays and internal topology are not observable'],
   ['Shared endpoint','several pools registering the same endpoint string','−10','May depend on the same failure point, relay service, or shared management','Using a third-party service does not imply common ownership'],
   ['Shared resolved IP','different names resolving to the same IP:port','−10','If the substance is the same, an outage, attack or fault can spread at once','Could be NAT, load balancing, or shared hosting'],
@@ -786,7 +790,7 @@ en:{
  ],
  riskFootnote:'Reference only, no direct deduction: same domain, same ASN, same cloud provider, similar tickers, stake concentration. These easily sweep ordinary users and unrelated pools into the same group, so without further evidence they are not used to deduct points.',
  methodTitle:'Scoring method and caveats',
- method:'<p><b>Reachability & tip sync — 35 pts</b>: reachable hosts / distinct hosts and at-tip hosts / distinct hosts, 17.5 each. The denominator is how many distinct hosts the registered endpoints resolve to, not how many entries were registered, so registering one machine twice on two ports neither helps nor hurts.<br><b>Redundancy — 15 pts</b>: 3+ reachable hosts = 15, 2 = 11, 1 = 5.<br><b>Infrastructure & operational independence — 25 pts</b>: endpoint not shared 10, IP not shared 10, no synchronised KES cluster 5. Sharing is only deducted when another <i>ranked</i> pool is on the other side. A pool with no recent blocks is not measured on any of these axes, so it is not treated as a reason to take points from a pool that is - particularly since a certificate can name someone else’s address and the pool named that way cannot remove it.<br><b>No borrowing — 10 pts</b>: awarded when no founding-entity bootstrap backbone is registered.<br><b>Registration continuity — 10 pts</b>: awarded when all relays were never removed in the past.<br><b>RTT — 5 pts</b>: ≤150 ms = 5, ≤300 = 4, ≤600 = 3, ≤1000 = 2, above that = 1.</p><p>Shared information is not proof that operators are the same, and RTT and connectivity results depend on the vantage point and the moment of measurement. Do not treat this ranking as the sole basis for a delegation decision.</p>',
+ method:'<p><b>Reachability & tip sync — 35 pts</b>: reachable hosts / distinct hosts, and at-tip hosts / <i>reachable</i> hosts, 17.5 each. The first denominator is how many distinct hosts the registered endpoints resolve to, not how many entries were registered, so registering one machine twice on two ports neither helps nor hurts; endpoints upstream marked untested rather than unreachable are left out of it. The second is different on purpose: whether a host was at chain tip can only be asked of a host that answered, so an endpoint that stayed silent is counted once, against reachability, and not a second time here.<br><b>Redundancy — 15 pts</b>: 3+ reachable hosts = 15, 2 = 11, 1 = 5.<br><b>Infrastructure & operational independence — 25 pts</b>: endpoint not shared 10, IP not shared 10, no synchronised KES cluster 5. Sharing is only deducted when another <i>ranked</i> pool is on the other side. A pool with no recent blocks is not measured on any of these axes, so it is not treated as a reason to take points from a pool that is - particularly since a certificate can name someone else’s address and the pool named that way cannot remove it.<br><b>No borrowing — 10 pts</b>: awarded when no founding-entity bootstrap backbone is registered.<br><b>Registration continuity — 10 pts</b>: awarded when all relays were never removed in the past.<br><b>RTT — 5 pts</b>: ≤150 ms = 5, ≤300 = 4, ≤600 = 3, ≤1000 = 2, above that = 1.</p><p>Shared information is not proof that operators are the same, and RTT and connectivity results depend on the vantage point and the moment of measurement. Do not treat this ranking as the sole basis for a delegation decision.</p>',
  footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Group labels via cardano-community/pool_groups · Generated 2026-08-28',
  guide:{
   fab:'Guide for holders',
@@ -977,13 +981,15 @@ ja:{
  grpHint:(n,ranked)=>'これを共有する'+n+'プールすべて'+(ranked<n?'（うち'+(n-ranked)+'件はランキング対象外）':'')+'。行をクリックすると詳細が開きます。',
  backToRanking:'\u2190 ランキングに戻る',
  umTitle:'このページでは測定できないプール',
- umLead:n=>'以下の '+n+' プールは直近30エポックでブロックを生成していますが、プローブする宛先を見つけられなかったため、6軸のいずれも測定できませんでした。採点も順位付けもしていません。上の表に出てこないのは、このページの測り方の限界であって、これらのプールについて何かが分かったということではありません。',
+ umLead:n=>'以下の '+n+' プールは直近30エポックでブロックを生成していますが、プローブできる対象がなかったため、6軸のいずれも測定できませんでした。宛先自体が無い場合と、宛先はあるがプローブ側が試せなかった場合があります。採点も順位付けもしていません。上の表に出てこないのは、このページの測り方の限界であって、これらのプールについて何かが分かったということではありません。',
  umWhy:'登録されたリレーは、他のノードがそのプールを見つけるための情報です。登録がなくてもブロックの生成と伝播は可能で、これらのプールは実際に生成しています。サービス拒否攻撃への露出を抑えるため、あるいはプライバシーのために、意図的に登録しない運用者もいると思われます。第三者のリレーサービスを別名義で使っている場合や、設定上の理由もあります。チェーンの外側からはこれらを区別できないため、ここに掲載されていることを欠陥として読むべきではありません。',
  umThPool:'プール', umThHistory:'登録の履歴', umThBlocks:'ブロック（30エポック）', umThStake:'ステーク',
- umReason:{NO_RELAY:'リレー登録なし', NOT_PROBED:'登録あり・プローブ対象外'},
+ umReason:{NO_RELAY:'リレー登録なし', NOT_PROBED:'登録あり・プローブ対象外',
+           NOT_TESTABLE:'登録あり・テストできたendpointなし'},
  umNever:'リレーが登録されたことはありません',
  umRemoved:d=>'以前は登録がありましたが、'+d+' 以降はありません',
  umWas:'過去のどこかで登録されていた記録があります',
+ umHas:n=>'現在も登録あり'+(n?'（'+n+'件）':'')+'。プローブ側がいずれも試せませんでした',
  umHitsSome:n=>'このうち '+n+' 件が検索に一致します',
  umAlsoHere:n=>' · ほかに '+n+' 件が下の「測定できないプール」の枠にあります',
  umOnly:n=>'ランキングに該当はありませんが、下の「測定できないプール」の枠に '+n+' 件あります。',
@@ -1040,7 +1046,9 @@ ja:{
   {d:'2026-09-02',t:'到達性の分母が間違っていた',
    w:'「到達」と「Tip同期」は応答したホスト（サーバー）の数を数えているが、割る側には登録証明書に書かれたエントリ数を使っていた。この2つは同じ数ではない。1台を2つのポートで登録していればエントリは2でホストは1なので、そのマシンがどれだけ正常に動いていても分子は分母に届かない。ランキング対象のうち180プール、7件に1件が、自力では外せない天井の下にいた。届かなかった点は35点中の中央値17.5点。登録名を解決し、実際に立っているホスト数を分母に用いるようにした。エントリ数を数えていた分母を下げるだけで上げることはないため、戻る点はあっても下がるプールはない。1つの名前が複数ホストに展開される側の挙動は従来どおり。詳細行では登録endpoint数と実ホスト数を別々に表示する。運営者からの指摘による。'},
   {d:'2026-09-02',t:'ランキング対象外のプールが、対象プールの点を引かないようにした',
-   w:'直近のブロック生成がないプールは6軸のどれも測っておらず、順位も付けていない。これは以前からの方針である。しかし共有による減点だけは、その対象外プールを相手にしても行われていた。採点対象のプールが、対象外プールと共有しているというだけでendpointとIPの点を失っていた。これは筋が通らないうえ、方向として悪い。証明書には他人のアドレスを含めどんなアドレスでも書けてしまい、書かれた側にはそれを消す手段がなく、消せるのは書いた側だけだからである。共有の減点は、相手も採点対象プールである場合に限るようにした。上流は endpoint 共有を「あり／なし」でしか出さず相手が誰かを示さないため、相手の特定はチェーンから自前で行っている。対象外プールのみと endpoint を共有していたプールが11件、他に採点対象プールのいない共有アドレス上にいたプールが10件、うち両方を失っていたのが7件。シグナル自体は行に残し、警告色ではなく中立の表示にして「減点なし」と明記する。運営者からの指摘による。'}
+   w:'直近のブロック生成がないプールは6軸のどれも測っておらず、順位も付けていない。これは以前からの方針である。しかし共有による減点だけは、その対象外プールを相手にしても行われていた。採点対象のプールが、対象外プールと共有しているというだけでendpointとIPの点を失っていた。これは筋が通らないうえ、方向として悪い。証明書には他人のアドレスを含めどんなアドレスでも書けてしまい、書かれた側にはそれを消す手段がなく、消せるのは書いた側だけだからである。共有の減点は、相手も採点対象プールである場合に限るようにした。上流は endpoint 共有を「あり／なし」でしか出さず相手が誰かを示さないため、相手の特定はチェーンから自前で行っている。対象外プールのみと endpoint を共有していたプールが11件、他に採点対象プールのいない共有アドレス上にいたプールが10件、うち両方を失っていたのが7件。シグナル自体は行に残し、警告色ではなく中立の表示にして「減点なし」と明記する。運営者からの指摘による。'},
+  {d:'2026-09-03',t:'Tip同期を、応答したホストだけに問うようにした',
+   w:'到達性とTip同期は同じ数で割られていたが、この2つは同じ問いではない。「応答したか」は登録された全アドレスに問えるが、「chain tipに追いついていたか」は応答したものにしか問えない。沈黙したendpointに同期状態は存在しないのに、そこに0を記録していた。結果として1本の沈黙が35点ブロックの両側から引いており、この2つの半分はここで説明しているような独立した測定ではなかった。Tipは到達ホスト数を分母にするようにした。229プールが上昇し、中央値で8.75点。下がるプールはない。同じ種類の小さな修正を2つ同時に入れた。1つは、endpointがIPv6でしか到達できずプローブ側にIPv6がない場合、上流はそれを「不達」ではなく「未テスト」として記録し専用の列で公開しているが、このページはその列を一度も読んでいなかった。テストしていないと明示されているものが分母に入ったままだった。もう1つは、全endpointがその状態だったプールで、100点中55点が測定不能のまま残り45点で順位が付いていた。プローブする宛先が無いプールを別枠に出しているのと同じ状況なので、そちらへ移した。到達性の測定方法についての運営者からの質問による。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1097,7 +1105,7 @@ ja:{
  rkWhy:'リスクとなり得る理由', rkBenign:'正常・誤判定の可能性',
  risks:[
   ['到達不能・部分到達','到達ホスト数 / 実ホスト数 が100%未満','−17.5','外部peerが接続できる入口が減り、障害時の経路選択肢が狭まる可能性','firewall、rate limit、再起動、観測元だけの遮断'],
-  ['Tip未同期・部分同期','Tip同期ホスト数 / 実ホスト数 が100%未満','−17.5','到達できてもchain tipから遅れていればrelay品質や同期状態に懸念','測定瞬間の遅延、tip判定の時間差'],
+  ['Tip未同期・部分同期','Tip同期ホスト数 / 到達ホスト数 が100%未満','−17.5','到達できてもchain tipから遅れていればrelay品質や同期状態に懸念','測定瞬間の遅延、tip判定の時間差'],
   ['リレー冗長性不足','到達ホストが2以下','−15','単一障害点や保守時の接続性低下につながる可能性','非公開relayや内部構成は観測できない'],
   ['同一endpoint共有','複数poolが同じ登録endpoint文字列','−10','同じ障害点・relayサービス・共通管理へ依存する可能性','第三者サービスの利用だけで、同一所有とは限らない'],
   ['解決先IP共有','異なる名前が同一IP:portへ解決','−10','名前が別でも実体が同じなら、停止・攻撃・障害が同時波及し得る','NAT、負荷分散、共有ホスティングの可能性'],
@@ -1108,7 +1116,7 @@ ja:{
  ],
  riskFootnote:'参考のみ・直接減点なし：同一ドメイン、同一ASN、同一クラウド事業者、Ticker類似、Stake集中。これらは一般利用者や無関係なpoolまで同一グループ扱いしやすいため、追加証拠なしではランキング減点に使いません。',
  methodTitle:'採点方法と注意点',
- method:'<p><b>到達性・Tip同期 35点</b>：到達ホスト数／実ホスト数 と Tip同期ホスト数／実ホスト数 を各17.5点。分母は登録エントリ数ではなく、登録endpointが解決する実ホスト数です。1台を2ポートで登録しても有利にも不利にもなりません。<br><b>冗長性 15点</b>：到達ホスト3以上=15、2=11、1=5。<br><b>インフラ・運用独立性 25点</b>：endpoint非共有10、IP非共有10、KES同期クラスターなし5。共有による減点は、相手も<i>ランキング対象</i>プールである場合に限ります。直近のブロック生成がないプールはどの軸も測っていないため、測っているプールの点を引く理由には使いません。証明書には他人のアドレスも書けてしまい、書かれた側にそれを消す手段がないためでもあります。<br><b>非借用 10点</b>：founding-entity bootstrap backboneを登録していなければ加点。<br><b>登録継続性 10点</b>：過去に全relayを削除した履歴がなければ加点。<br><b>RTT 5点</b>：≤150ms=5、≤300=4、≤600=3、≤1000=2、それ以上=1。</p><p>共有情報は運営者同一の証明ではなく、RTTと疎通結果は観測地点・時刻に依存します。順位は委任判断の唯一の根拠にはしないでください。</p>',
+ method:'<p><b>到達性・Tip同期 35点</b>：到達ホスト数／実ホスト数 と Tip同期ホスト数／<i>到達</i>ホスト数 を各17.5点。前者の分母は登録エントリ数ではなく、登録endpointが解決する実ホスト数です。1台を2ポートで登録しても有利にも不利にもなりません。上流が「不達」ではなく「未テスト」と記録したendpointは分母から外します。後者の分母が違うのは意図的です。chain tipに追いついていたかは応答したホストにしか問えないので、沈黙したendpointは到達性で1回数え、ここで二重に数えません。<br><b>冗長性 15点</b>：到達ホスト3以上=15、2=11、1=5。<br><b>インフラ・運用独立性 25点</b>：endpoint非共有10、IP非共有10、KES同期クラスターなし5。共有による減点は、相手も<i>ランキング対象</i>プールである場合に限ります。直近のブロック生成がないプールはどの軸も測っていないため、測っているプールの点を引く理由には使いません。証明書には他人のアドレスも書けてしまい、書かれた側にそれを消す手段がないためでもあります。<br><b>非借用 10点</b>：founding-entity bootstrap backboneを登録していなければ加点。<br><b>登録継続性 10点</b>：過去に全relayを削除した履歴がなければ加点。<br><b>RTT 5点</b>：≤150ms=5、≤300=4、≤600=3、≤1000=2、それ以上=1。</p><p>共有情報は運営者同一の証明ではなく、RTTと疎通結果は観測地点・時刻に依存します。順位は委任判断の唯一の根拠にはしないでください。</p>',
  footer:'Source: BEACNpool / ABCDE — relay_pool_health.csv + relay_shared_hosts.csv + pool_operator_kes_members.csv · Group labels via cardano-community/pool_groups · Generated 2026-08-28',
  guide:{
   fab:'ホルダーへの簡単解説',
@@ -1626,6 +1634,9 @@ function matchesQuery(o,s){
 }
 function umHistory(u){
   const t=T();
+  /* A pool that is here because nothing could be TRIED still has a registration
+     standing right now, so reciting an old removal would contradict the row. */
+  if(u.reason==='NOT_TESTABLE')return t.umHas(u.entries);
   if(u.removedOn)return t.umRemoved(u.removedOn);
   if(u.everRegistered)return t.umWas;
   return t.umNever;

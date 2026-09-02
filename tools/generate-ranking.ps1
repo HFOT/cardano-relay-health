@@ -225,12 +225,26 @@ $ranked = foreach ($r in $rows) {
   $blocks = N $r.blocks_last_30_epochs
   $probed = N $r.endpoints_probed
   if ($r.minted_last_30_epochs -ne 't' -or $blocks -le 0 -or $probed -le 0) { continue }
+  # 全endpointが未テストなら、6軸のうち到達性・冗長性・RTTの55点が最初から測れて
+  # いない。それで順位を付けるのは、アドレスが無くてプローブできなかったプールを
+  # 別枠に出しているのと同じ状況を、失敗コードが違うというだけで見逃すことになる。
+  if ((N $r.endpoints_untested) -ge $probed) { continue }
   $reachable = N $r.reachable_hosts; $atTip = N $r.at_tip_hosts
   # 分母は「実際に立っているホスト数」。名前が複数ホストに展開される側は今までどおり
   # 1.0 で頭打ちになるだけなので、Min を取っても振る舞いは変わらない。
-  $denom = if ($hostsMap.ContainsKey($r.pool_bech32) -and $hostsMap[$r.pool_bech32] -gt 0) { [Math]::Min($probed, $hostsMap[$r.pool_bech32]) } else { $probed }
+  # さらに、上流が no_ipv6_at_probe（プローバー側にIPv6がなく試せなかった）として
+  # 「不達ではなく未テスト」と明記しているendpointは分母から外す。試していないものを
+  # 割る数に入れたままでは、測っていない分を減点していることになる。
+  $untested = N $r.endpoints_untested
+  $testable = [Math]::Max(0, $probed - $untested)
+  $denom = if ($hostsMap.ContainsKey($r.pool_bech32) -and $hostsMap[$r.pool_bech32] -gt 0) { [Math]::Min($testable, $hostsMap[$r.pool_bech32]) } else { $testable }
   if ($denom -le 0) { $denom = $probed }
-  $reachRatio = [Math]::Min(1.0, $reachable / $denom); $tipRatio = [Math]::Min(1.0, $atTip / $denom)
+  # 到達性とTip同期は同じ母集団に対する問いではない。「応答したか」は登録された
+  # endpoint 全部に問えるが、「tipに追いついていたか」は応答したものにしか問えない。
+  # 返事のないホストに同期状態は存在しないので、そこを0として数えると1本の不達が
+  # 35点ブロックの両側から引くことになる。tipは応答したホストだけで測る。
+  $reachRatio = [Math]::Min(1.0, $reachable / $denom)
+  $tipRatio = if ($reachable -gt 0) { [Math]::Min(1.0, $atTip / $reachable) } else { 0.0 }
   $reachScore = 17.5*$reachRatio + 17.5*$tipRatio
   $redundancy = if ($reachable -ge 3) {15} elseif ($reachable -eq 2) {11} elseif ($reachable -eq 1) {5} else {0}
   $sharedIp = $ipMap.ContainsKey($r.pool_bech32)
@@ -279,10 +293,12 @@ $json = $ranked | ConvertTo-Json -Depth 6 -Compress
 # 設定上の理由）はチェーンの外側からは区別できない。表示側の文章もその前提で書く。
 $unmeasured = foreach ($r in $rows) {
   if ($r.minted_last_30_epochs -ne 't' -or (N $r.blocks_last_30_epochs) -le 0) { continue }
-  if ((N $r.endpoints_probed) -gt 0) { continue }
+  $probedHere = N $r.endpoints_probed
+  $untestedHere = N $r.endpoints_untested
+  if ($probedHere -gt 0 -and $untestedHere -lt $probedHere) { continue }
   $entries = [int](N $r.relay_entries)
   # 登録はあるのにプローブされていない場合は理由が違うので、コードを分けて表示側に委ねる
-  $reason = if ($entries -eq 0) { 'NO_RELAY' } else { 'NOT_PROBED' }
+  $reason = if ($probedHere -gt 0) { 'NOT_TESTABLE' } elseif ($entries -eq 0) { 'NO_RELAY' } else { 'NOT_PROBED' }
   $removedOn = if ([string]::IsNullOrWhiteSpace($r.removed_all_relays_on)) { $null } else { ($r.removed_all_relays_on -split ' ')[0] }
   [pscustomobject]@{
     ticker = $r.ticker; pool = $r.pool_bech32; reason = $reason; entries = $entries

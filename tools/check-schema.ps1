@@ -29,8 +29,12 @@ $required = [ordered]@{
 # relay_additions / removed_all_relays_on: only add detail to the "cannot be
 # measured" section. Without them that section still lists the same pools, it
 # just stops saying whether a pool ever had relays registered before.
+# endpoints_untested: endpoints upstream could not test at all (ipv6-only, and the
+# prober has no ipv6). Absent, every endpoint counts as testable - which is what
+# this page did before it read the column - so a missing column costs the pools
+# concerned their exemption, not the build.
 $optional = [ordered]@{
-  'relay_pool_health.csv' = @('registers_foreign_infrastructure','relay_additions','removed_all_relays_on')
+  'relay_pool_health.csv' = @('registers_foreign_infrastructure','relay_additions','removed_all_relays_on','endpoints_untested')
 }
 
 $missingRequired = @()
