@@ -59,12 +59,25 @@ if (Test-Path $foreignPath) {
 # tools/fetch-relay-hosts.ps1 が登録名を解決した実ホスト数を使って分母を下げる。
 # 下げるだけで上げないので、届かなかった点が戻るプールはあっても、下がるプールはない。
 $hostsMap = @{}
+$hostsEntries = @{}
 $epPartners = @{}
+$hostsStale = 0
+# data/ はCIの各回でまっさらになるが、前回生成した index.html はリポジトリに残っている。
+# 「前回の分母」はそこから読む。存在しない回（初回・生成物が消えた回）は静かに空のまま進む。
+$prevDenom = @{}
+if ($OutFile -and (Test-Path $OutFile)) {
+  $prevHtml = Get-Content -Raw -Encoding UTF8 $OutFile
+  foreach ($m in [regex]::Matches($prevHtml, '"pool":"(pool1[a-z0-9]+)"[^{]*?"denom":(\d+)')) {
+    $prevDenom[$m.Groups[1].Value] = [int]$m.Groups[2].Value
+  }
+  Write-Output "  previous page: $($prevDenom.Count) pools carry a denominator forward if their registration changed"
+}
 $hostsPath = Join-Path $SrcDir 'relay_hosts.csv'
 if (Test-Path $hostsPath) {
   foreach ($h in (Import-Csv $hostsPath)) {
     if (-not $h.pool_bech32) { continue }
     $hostsMap[$h.pool_bech32] = [int]$h.hosts
+    $hostsEntries[$h.pool_bech32] = [int]$h.entries
     if ($h.endpoint_partners) { $epPartners[$h.pool_bech32] = @($h.endpoint_partners -split '\s+' | Where-Object { $_ }) }
   }
   Write-Output "  relay_hosts.csv: $($hostsMap.Count) pools, $($epPartners.Count) sharing an endpoint string"
@@ -237,7 +250,20 @@ $ranked = foreach ($r in $rows) {
   # 割る数に入れたままでは、測っていない分を減点していることになる。
   $untested = N $r.endpoints_untested
   $testable = [Math]::Max(0, $probed - $untested)
-  $denom = if ($hostsMap.ContainsKey($r.pool_bech32) -and $hostsMap[$r.pool_bech32] -gt 0) { [Math]::Min($testable, $hostsMap[$r.pool_bech32]) } else { $testable }
+  # ホスト数は Koios の「最新の登録」から、到達数は上流の「その回の probe」から来る。
+  # 運営者がリレーを触った直後は、この2つが別の登録集合を指す。そのまま割ると分母だけが
+  # 先に動き、リレーを足した当日に点が下がるという、行動と逆の挙動になる。
+  # 登録エントリ数が食い違う回は新しく計算せず、前回公開した分母を据え置く。上流が新しい
+  # 登録を測り直した回に、また自然に動き出す。据え置きは表示にも出す（黙って止めない）。
+  $hostsKnown = $hostsMap.ContainsKey($r.pool_bech32) -and $hostsMap[$r.pool_bech32] -gt 0
+  $hostsFresh = $hostsKnown -and $hostsEntries.ContainsKey($r.pool_bech32) -and $hostsEntries[$r.pool_bech32] -eq [int]$r.relay_entries
+  $carried = $false
+  $denom = $testable
+  if ($hostsKnown) { $denom = [Math]::Min($testable, $hostsMap[$r.pool_bech32]) }
+  if ($hostsKnown -and -not $hostsFresh) {
+    $hostsStale++
+    if ($prevDenom.ContainsKey($r.pool_bech32)) { $carried = $true; $denom = [Math]::Min($testable, $prevDenom[$r.pool_bech32]) }
+  }
   if ($denom -le 0) { $denom = $probed }
   # 到達性とTip同期は同じ母集団に対する問いではない。「応答したか」は登録された
   # endpoint 全部に問えるが、「tipに追いついていたか」は応答したものにしか問えない。
@@ -278,9 +304,12 @@ $ranked = foreach ($r in $rows) {
   if ($r.ever_removed_all_relays -eq 't') { $issues += [pscustomobject]@{ code='REMOVED_ALL' } }
   if ($null -ne $rtt -and $rtt -gt 1000) { $issues += [pscustomobject]@{ code='RTT_HIGH'; a=[Math]::Round($rtt,1) } }
   $severity = if ($isForeign -or $atTip -eq 0 -or ($ipWithRanked -and $ipMap[$r.pool_bech32].maxPools -ge 10)) {'high'} elseif ($issues.Count -ge 2 -or $kesLinked -or $ipWithRanked) {'mid'} elseif ($issues.Count -eq 1) {'low'} else {'none'}
+  # 登録変更は不備ではないので severity を決めたあとに足す（重さを1段上げてしまわない）
+  if ($carried) { $issues += [pscustomobject]@{ code='REGISTRATION_CHANGED' } }
   [pscustomobject]@{ ticker=$r.ticker; pool=$r.pool_bech32; score=[Math]::Round($reachScore+$redundancy+$independence+$ownership+$continuity+$latency,2); stake=[double]$r.stake_ada; sat=$(if($satPoint -gt 0){[Math]::Round([double]$r.stake_ada/$satPoint,4)}else{$null}); delegators=[int]$r.delegators; blocks=[int]$blocks; hist=$(if($histMap.ContainsKey($r.pool_bech32)){,$histMap[$r.pool_bech32]}else{$null}); margin=$(if($feeMap.ContainsKey($r.pool_bech32)){$feeMap[$r.pool_bech32].m}else{$null}); fixedAda=$(if($feeMap.ContainsKey($r.pool_bech32)){$feeMap[$r.pool_bech32].f}else{$null}); entries=[int]$r.relay_entries; probed=[int]$probed; denom=[int]$denom; reachable=[int]$reachable; atTip=[int]$atTip; rtt=$rtt; shared=$sharedEp; epScored=$epWithRanked; sharedIp=$sharedIp; ipScored=$ipWithRanked; sharedIpPools=$(if($sharedIp){$ipMap[$r.pool_bech32].maxPools}else{0}); ipKey=$(if($sharedIp){$ipMap[$r.pool_bech32].key}else{$null}); kesLinked=$kesLinked; kesCluster=$(if($kesLinked){$kesMap[$r.pool_bech32].id}else{$null}); kesClusterSize=$(if($kesLinked){$kesMap[$r.pool_bech32].size}else{0}); foreign=$isForeign; removedAll=($r.ever_removed_all_relays -eq 't'); issues=$issues; severity=$severity; checked=$r.last_checked; groupLabel=$(if($groupLabelMap.ContainsKey($r.pool_bech32)){$groupLabelMap[$r.pool_bech32]}else{$null}); groupSrc=$(if($labelSource -and $labelSource.ContainsKey($r.pool_bech32) -and $groupLabelMap.ContainsKey($r.pool_bech32)){$labelSource[$r.pool_bech32]}else{$null}); domN=$(if($domains.ContainsKey($r.pool_bech32)){$domains[$r.pool_bech32].n}else{0}); domBlk=$(if($domains.ContainsKey($r.pool_bech32) -and $totalBlocks -gt 0){[Math]::Round($domains[$r.pool_bech32].blk/$totalBlocks*100,3)}else{$null}); relayNotes=$(if($relayNoteMap.ContainsKey($r.pool_bech32)){$relayNoteMap[$r.pool_bech32]}else{@()}); parts=[pscustomobject]@{reach=[Math]::Round($reachScore,2); redundancy=$redundancy; independence=$independence; ownership=$ownership; continuity=$continuity; latency=$latency} }
 }
 $ranked = @($ranked | Sort-Object @{e='score';Descending=$true}, @{e='reachable';Descending=$true}, @{e='rtt';Ascending=$true}, @{e='stake';Descending=$true})
+if ($hostsStale -gt 0) { Write-Output "  $hostsStale pools changed their registration between the upstream probe and the host count; their denominator is held at the previous value" }
 for ($i=0; $i -lt $ranked.Count; $i++) { $ranked[$i] | Add-Member rank ($i+1) }
 $json = $ranked | ConvertTo-Json -Depth 6 -Compress
 
