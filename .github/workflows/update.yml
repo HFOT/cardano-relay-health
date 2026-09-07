@@ -93,6 +93,22 @@ jobs:
         shell: powershell
         run: ./tools/fetch-relay-notes.ps1 -OutDir data
 
+      # A second observation of the pools the upstream probe reached none of.
+      # Its own prober says in its source that a firewall dropping its prefix,
+      # a connection limit or a restart all read as "unreachable" while the
+      # relay serves its peers fine, and probing by hand bore that out: pools
+      # it calls unreachable complete a real handshake from elsewhere, and a
+      # vantage point in Japan and one on this runner each saw pools the other
+      # could not. This only records the disagreement - nothing reads the file
+      # yet and no score moves - because whether it is steady enough to act on
+      # cannot be told from one day. Display only, so a bad run costs today's
+      # row and nothing else.
+      - name: Probe the pools upstream could not reach
+        shell: powershell
+        continue-on-error: true
+        timeout-minutes: 35
+        run: ./tools/fetch-probe.ps1 -SrcDir data -HistDir history
+
       - name: Generate page
         shell: powershell
         run: |
@@ -109,14 +125,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- index.html; then
-            echo "No change in index.html — nothing to commit."
+          # history/ is the probe's own record and accumulates a row per day, so
+          # the page can be identical while there is still something to keep.
+          page_changed=0; hist_changed=0
+          git diff --quiet -- index.html || page_changed=1
+          git diff --quiet -- history/ || hist_changed=1
+          [ -z "$(git ls-files --others --exclude-standard -- history/)" ] || hist_changed=1
+          if [ "$page_changed" = 0 ] && [ "$hist_changed" = 0 ]; then
+            echo "Nothing changed — nothing to commit."
             exit 0
+          fi
+          if [ "$page_changed" = 1 ]; then
+            msg="Rebuild ranking from ABCDE data ($(date -u '+%Y-%m-%d'))"
+          else
+            msg="Record today's second observation ($(date -u '+%Y-%m-%d'))"
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git commit -m "Rebuild ranking from ABCDE data ($(date -u '+%Y-%m-%d'))"
+          git add index.html history/
+          git commit -m "$msg"
           # A push from a person while this run was building rejects this one.
           # The commit is a data-only rebuild and the next run regenerates it
           # from the same source, so losing it costs nothing - failing the
