@@ -1252,10 +1252,11 @@ const STCLS={active:'st-active',partial:'st-partial',degraded:'st-degraded',stop
    beyond the three public CSVs. (Verified identical to the recorded observation
    log for all 1282 pools.) */
 function stateOf(x){
-  if(x.probed<=0)return 'unknown';
+  const d=x.denom||x.probed;
+  if(d<=0)return 'unknown';
   if(x.reachable===0)return 'stopped';
   if(x.atTip===0)return 'degraded';
-  if(x.reachable<x.probed||x.atTip<x.reachable)return 'partial';
+  if(x.reachable<d||x.atTip<x.reachable)return 'partial';
   return 'active';
 }
 const AXES=[['reach',35],['redundancy',15],['independence',25],['ownership',10],['continuity',10],['latency',5]];
@@ -1263,7 +1264,7 @@ const AXES=[['reach',35],['redundancy',15],['independence',25],['ownership',10],
 // いる項目そのものなので、絞り込みとは独立に使える。ep（endpoint共有）だけは上流が
 // 真偽値で件数を持たず、対応する測定値がないため並び順は触らない。
 const SIGNALS=[
-  {k:'reach',test:x=>x.reachable<x.probed,             sort:'hosts'},
+  {k:'reach',test:x=>x.reachable<(x.denom||x.probed),  sort:'hosts'},
   {k:'ip'   ,test:x=>!!x.sharedIp,                     sort:'ipSize'},
   {k:'kes'  ,test:x=>!!x.kesLinked,                    sort:'kesSize'},
   {k:'tip'  ,test:x=>x.atTip<x.reachable||x.atTip===0, sort:'atTip'},
@@ -1291,7 +1292,7 @@ function issueText(i){
 }
 function benignList(x){
   const t=T().benign,a=[];
-  if(x.reachable<x.probed||x.atTip<x.reachable)a.push(t.reach);
+  if(x.reachable<(x.denom||x.probed)||x.atTip<x.reachable)a.push(t.reach);
   if(x.reachable===1)a.push(t.single);
   if(x.shared)a.push(t.ep);
   if(x.sharedIp)a.push(t.ip);
