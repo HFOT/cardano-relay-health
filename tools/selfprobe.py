@@ -138,23 +138,39 @@ def blocks_last_30(tip_epoch):
     return total
 
 
+def relay_key(r):
+    if r.get('srv'): return 'srv:' + r['srv'].lower()
+    if r.get('dns'): return f"dns:{r['dns'].lower()}:{r.get('port')}"
+    if r.get('ipv4'): return f"ipv4:{r['ipv4']}:{r.get('port')}"
+    if r.get('ipv6'): return f"ipv6:{r['ipv6']}:{r.get('port')}"
+    return None
+
+
 def registration_history():
+    """Relays added / all relays removed, as upstream counts them.
+
+    Checked against upstream's last published file: this reproduces
+    ever_removed_all_relays and its date for all 2,896 pools, and
+    relay_additions for 2,886. Two certificates can land in the same block;
+    they must stay in chain order (a stable sort on time alone), because
+    breaking the tie by relay count invents removals that never happened.
+    """
     rows = paged('pool_updates?select=pool_id_bech32,block_time,update_type,relays')
     by = defaultdict(list)
     for r in rows:
         if r.get('update_type') == 'registration':
-            by[r['pool_id_bech32']].append((r['block_time'] or 0, len(r.get('relays') or [])))
+            by[r['pool_id_bech32']].append((r['block_time'] or 0, {k for k in map(relay_key, r.get('relays') or []) if k}))
     hist = {}
     for p, ev in by.items():
-        ev.sort()
+        ev.sort(key=lambda x: x[0])
         adds = reds = 0
         removed_on = None
         for (_, a), (t, b) in zip(ev, ev[1:]):
-            if b > a:
+            if len(b) > len(a):
                 adds += 1
-            elif b < a:
+            elif len(b) < len(a):
                 reds += 1
-            if a > 0 and b == 0:
+            if a and not b:
                 removed_on = dt.datetime.fromtimestamp(t, dt.UTC).strftime('%Y-%m-%d')
         hist[p] = (adds, reds, removed_on)
     log(f'  registration history: {len(rows)} updates across {len(hist)} pools')
@@ -264,6 +280,7 @@ def main():
     ap.add_argument('--workers', type=int, default=48)
     ap.add_argument('--confirm-workers', type=int, default=24)
     ap.add_argument('--max-pools', type=int, default=0, help='probe only this many minting pools (testing)')
+    ap.add_argument('--upstream-last', default='', help="upstream's newest last_checked, for the page notice")
     a = ap.parse_args()
 
     started = now_utc()
@@ -395,20 +412,22 @@ def main():
         w.writeheader()
         w.writerows(health)
 
-    # ---- relay_shared_hosts.csv (IPv4 addresses registered by 2+ pools) ----
+    # ---- relay_shared_hosts.csv ----
+    # Upstream groups by the address that actually answered the probe, not by
+    # what a name resolves to from wherever the resolver sits. Names served by
+    # geographic DNS return different addresses to different places, so grouping
+    # on DNS answers would put pools on the same host that never met there.
     groups = defaultdict(lambda: {'pools': set(), 'names': set()})
-    for p, es in eps.items():
-        for e in es:
-            if e['kind'] == 'dns':
-                ips = rz.get(e['host'], ([], []))[0]
-            elif e['kind'] == 'ipv4':
-                ips = [e['host']]
-            else:
+    for p in minted:
+        for e in eps[p]:
+            st = ep_state.get((p, e['key'], e['port']))
+            if not isinstance(st, list):
                 continue
-            for ip in ips:
-                g = groups[(ip, e['port'])]
-                g['pools'].add(p)
-                g['names'].add(e['key'])
+            for tid in st:
+                for t in res.get(tid, ([], None, None))[0]:
+                    g = groups[(t.get('addr'), t.get('port') or e['port'])]
+                    g['pools'].add(p)
+                    g['names'].add(e['key'])
     shared = []
     for (ip, port), g in groups.items():
         if len(g['pools']) < 2:
@@ -428,8 +447,14 @@ def main():
         w.writeheader()
         w.writerows(shared)
 
+    # A broken run must not replace stale-but-real numbers with wrong ones. Of the
+    # pools minting blocks, upstream reached roughly 85%; a run far below that says
+    # more about this runner's network than about the pools.
+    if len(minted) >= 500 and ok_total < 0.6 * len(minted):
+        raise SystemExit(f'only {ok_total} of {len(minted)} minting pools answered - refusing to publish this run')
+
     with open(os.path.join(a.out, 'source.json'), 'w', encoding='utf-8') as f:
-        json.dump({'source': 'self', 'started': fmt_ts(started), 'finished': now_s,
+        json.dump({'source': 'self', 'upstream_last': a.upstream_last, 'started': fmt_ts(started), 'finished': now_s,
                    'probed_pools': len(minted), 'targets': len(targets),
                    'reachable_pools': ok_total, 'at_tip_pools': tip_total,
                    'tip_slot_drift': drift}, f)

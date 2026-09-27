@@ -76,6 +76,7 @@ h3{margin:0 0 12px;font-size:12px;color:var(--muted);font-weight:700;letter-spac
 /* ---------- summary ---------- */
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:28px 0 0}
 .stat{padding:15px 17px}
+.srcnote{margin:13px 0 0;padding:13px 17px;font-size:13px;line-height:1.7;border-left:3px solid var(--accent,#9b8cff)}
 .stat span{color:var(--muted);font-size:12px}
 .stat b{display:block;font-size:27px;line-height:1.25;font-variant-numeric:tabular-nums;
   background:linear-gradient(92deg,#8b5cff,#22d3ee 55%,#34e2b0);
@@ -433,6 +434,8 @@ details.method-wrap>summary{cursor:pointer;font-weight:700;padding:6px 0;color:v
   <div class="stat glass"><span data-i18n="stChecked"></span><b style="font-size:18px">__CHECKED__</b><small data-i18n="stCheckedSub"></small></div>
 </section>
 
+<div class="srcnote glass" id="srcnote" hidden></div>
+
 <section class="charts">
   <div class="chart glass">
     <h3 data-i18n="chartDist"></h3>
@@ -566,6 +569,7 @@ const UNMEASURED=__UNMEASURED__;
 const SATPOINT=__SATPOINT__;
 // 障害ドメインの一覧。プールではなく「一つの集団として見える単位」。
 const DOMAINS=__DOMAINS__;
+const SOURCE=__SOURCE__;
 
 /* ==================== i18n ==================== */
 const I18N={
@@ -579,6 +583,7 @@ en:{
  stMax:'Maximum score', stMaxSub:'sum of 6 scoring axes',
  stAvg:'Average score', stMedian:'median',
  stChecked:'Observed at', stCheckedSub:'UTC / last check per row',
+ srcSelf:(up,at)=>'<b>Measured by this site.</b> The upstream dataset this page is built from (BEACNpool ABCDE) has not published since '+up+'. Reachability, tip sync and RTT on this build were measured here on '+at+' UTC, with the same tool and the same two-pass test upstream uses, run from a single vantage point in the United States. Everything else - stake, blocks, registrations - is read from the chain through Koios. KES clusters are still upstream’s last published set.',
  chartDist:'Score distribution',
  chartDistCap:'The curve is the measured distribution, not a theoretical normal curve. Click a band to filter to that grade.',
  chartHex:'How often each signal appears',
@@ -724,7 +729,9 @@ en:{
   {d:'2026-09-03',t:'Tip sync is now asked only of the hosts that answered',
    w:'Reachability and tip sync were both divided by the same number, and they are not the same question. Whether an endpoint answered can be asked of every address a pool registered. Whether it was at chain tip can only be asked of the ones that did answer - for an endpoint that stayed silent there is no sync state to observe, and a zero was being recorded as though there were. So a single silent endpoint was subtracting from both halves of a 35-point block, and the two halves were never the independent measurements described here. Tip is now measured over reachable hosts. 229 pools gain, a median 8.75 points; none loses any. Two smaller corrections of the same kind went in alongside it. Where an endpoint is reachable only over IPv6 and the probe has none, upstream records it as untested rather than unreachable and publishes that count in its own column - a column this page had never read, so something explicitly marked as not tested was sitting in the denominator. And a pool whose every endpoint was in that state was being ranked on 45 of the 100 points with the other 55 unmeasurable; it now sits in the section for pools that could not be measured, which is where the same situation already sent pools with no address to probe. Raised by an operator asking how reachability is tested.'},
   {d:'2026-09-07',t:'Changing a relay registration no longer moves the score before the change has been measured',
-   w:'The reachability denominator is how many distinct hosts a pool actually has, and it is counted here by resolving the relay names the chain lists at the moment the page is built. The numerator - how many of those answered - comes from the upstream probe, which ran earlier the same day against whatever was registered when it ran. On an ordinary day the two describe the same registration. On the day an operator changes their relays they do not, and the denominator is the half that moves first. A pool that has just added a host can see its score fall on the day it added it, and one that has just removed an entry can see it rise, in both cases before anything about the change has been measured. Neither movement says anything about the pool. Where the registered entry count no longer matches the one the probe worked from, the denominator is now held at the value published on the previous run rather than recalculated, and the row says that it is being held. It starts moving again on the first run where the probe and the registration describe the same set. On a day when the two already agree, nothing changes. Raised by an operator whose score fell on the day they added a relay.'}
+   w:'The reachability denominator is how many distinct hosts a pool actually has, and it is counted here by resolving the relay names the chain lists at the moment the page is built. The numerator - how many of those answered - comes from the upstream probe, which ran earlier the same day against whatever was registered when it ran. On an ordinary day the two describe the same registration. On the day an operator changes their relays they do not, and the denominator is the half that moves first. A pool that has just added a host can see its score fall on the day it added it, and one that has just removed an entry can see it rise, in both cases before anything about the change has been measured. Neither movement says anything about the pool. Where the registered entry count no longer matches the one the probe worked from, the denominator is now held at the value published on the previous run rather than recalculated, and the row says that it is being held. It starts moving again on the first run where the probe and the registration describe the same set. On a day when the two already agree, nothing changes. Raised by an operator whose score fell on the day they added a relay.'},
+  {d:'2026-09-27',t:'Upstream has stopped, so this site now measures when it has to',
+   w:'This page is built from BEACNpool’s ABCDE relay dataset, and that dataset has not published since 2026-09-14. For thirteen days the page kept rebuilding on the same frozen measurements. When upstream’s newest observation is more than 48 hours old, reachability, tip sync and RTT are now measured here instead, with the tool upstream uses (cardano-cli ping) and the same two-pass test, and stake, blocks and registrations are read from the chain through Koios. Upstream’s tip request had looked impossible to reproduce; it turned out to fail only in the Windows build of the tool, and works from a Linux runner. Against upstream’s last run, a first trial of 59 pools gave the same reachable-host count for 57 and the same at-tip count for 56, thirteen days apart. The page says which data a build came from. Whenever upstream publishes again, it is used again. KES clusters still come from upstream’s last published set.'}
  ],
  dHex:'6-axis balance', dBreak:(s)=>'Score breakdown (total '+s+' / 100)',
  dSignals:(n)=>'Items to check ('+n+')', dNoIssue:'✓ No additional signals',
@@ -908,6 +915,7 @@ ja:{
  stMax:'満点', stMaxSub:'6つの評価軸の合計',
  stAvg:'平均スコア', stMedian:'中央値',
  stChecked:'観測時刻', stCheckedSub:'UTC / 行ごとの最終確認値',
+ srcSelf:(up,at)=>'<b>このサイトが自前で測定しました。</b>このページの元データ（BEACNpool ABCDE）は '+up+' 以降更新されていません。この回の到達性・Tip同期・RTTは、上流と同じ道具・同じ2パス方式で、'+at+'（UTC）にこちらが測ったものです。観測地点は米国の1か所です。ステーク・ブロック数・登録内容はKoios経由でチェーンから読んでいます。KES同期クラスターのみ、上流が最後に公開したものを使っています。',
  chartDist:'スコア分布',
  chartDistCap:'曲線は実測の分布です（正規分布の理論曲線ではありません）。帯をクリックするとその評価だけに絞り込めます。',
  chartHex:'注意シグナルの出現率',
@@ -1053,7 +1061,9 @@ ja:{
   {d:'2026-09-03',t:'Tip同期を、応答したホストだけに問うようにした',
    w:'到達性とTip同期は同じ数で割られていたが、この2つは同じ問いではない。「応答したか」は登録された全アドレスに問えるが、「chain tipに追いついていたか」は応答したものにしか問えない。沈黙したendpointに同期状態は存在しないのに、そこに0を記録していた。結果として1本の沈黙が35点ブロックの両側から引いており、この2つの半分はここで説明しているような独立した測定ではなかった。Tipは到達ホスト数を分母にするようにした。229プールが上昇し、中央値で8.75点。下がるプールはない。同じ種類の小さな修正を2つ同時に入れた。1つは、endpointがIPv6でしか到達できずプローブ側にIPv6がない場合、上流はそれを「不達」ではなく「未テスト」として記録し専用の列で公開しているが、このページはその列を一度も読んでいなかった。テストしていないと明示されているものが分母に入ったままだった。もう1つは、全endpointがその状態だったプールで、100点中55点が測定不能のまま残り45点で順位が付いていた。プローブする宛先が無いプールを別枠に出しているのと同じ状況なので、そちらへ移した。到達性の測定方法についての運営者からの質問による。'},
   {d:'2026-09-07',t:'リレー登録の変更が、測定される前にスコアを動かさないようにした',
-   w:'到達性の分母は、そのプールが実際に持っているホストの数であり、ページを生成する時点でチェーンに登録されているリレー名を解決して数えている。一方で分子（そのうち何台が応答したか）は上流の計測によるもので、その計測は同じ日の早い時間に、その時点で登録されていた集合に対して行われている。通常の日は、この2つは同じ登録を指している。しかし運営者がリレーを変更した日は指しておらず、しかも先に動くのは分母のほうである。そのため、ホストを追加したプールが追加した当日にスコアを下げ、エントリを削除したプールが削除した当日に上げる、ということが起こりうる。どちらも変更について何も測定されていない段階での変動であり、そのプールについて何かを述べたものではない。登録エントリ数が計測時のものと一致しなくなった回は、分母を計算し直さず、前回公開した値を据え置くようにした。据え置いていることは行にも表示する。計測と登録が同じ集合を指した最初の回から、また動き出す。両者が既に一致している日は何も変わらない。リレーを追加した当日にスコアが下がった運営者からの指摘による。'}
+   w:'到達性の分母は、そのプールが実際に持っているホストの数であり、ページを生成する時点でチェーンに登録されているリレー名を解決して数えている。一方で分子（そのうち何台が応答したか）は上流の計測によるもので、その計測は同じ日の早い時間に、その時点で登録されていた集合に対して行われている。通常の日は、この2つは同じ登録を指している。しかし運営者がリレーを変更した日は指しておらず、しかも先に動くのは分母のほうである。そのため、ホストを追加したプールが追加した当日にスコアを下げ、エントリを削除したプールが削除した当日に上げる、ということが起こりうる。どちらも変更について何も測定されていない段階での変動であり、そのプールについて何かを述べたものではない。登録エントリ数が計測時のものと一致しなくなった回は、分母を計算し直さず、前回公開した値を据え置くようにした。据え置いていることは行にも表示する。計測と登録が同じ集合を指した最初の回から、また動き出す。両者が既に一致している日は何も変わらない。リレーを追加した当日にスコアが下がった運営者からの指摘による。'},
+  {d:'2026-09-27',t:'上流が止まったので、必要なときはこのサイトが自前で測るようにした',
+   w:'このページはBEACNpoolのABCDEリレーデータから作っているが、そのデータは2026-09-14以降公開されていない。13日間、同じ凍った測定値でページを作り直し続けていた。上流の最新観測が48時間より古い場合は、到達性・Tip同期・RTTを上流と同じ道具（cardano-cli ping）・同じ2パス方式でこちらが測り、ステーク・ブロック数・登録内容はKoios経由でチェーンから読むようにした。上流のTip取得はこれまで再現できないと考えていたが、失敗していたのは道具のWindows版だけで、Linuxランナーからは取得できた。最初の試運転59プールでは、13日の差があるにもかかわらず、到達ホスト数が57、Tip同期ホスト数が56で上流の最終回と一致した。どちらのデータで作った回かはページに明示する。上流が再開すれば再び上流を使う。KES同期クラスターのみ、上流が最後に公開したものを使っている。'}
  ],
  dHex:'6軸バランス', dBreak:(s)=>'スコア内訳（合計 '+s+' / 100）',
  dSignals:(n)=>'確認シグナル（'+n+'件）', dNoIssue:'✓ 追加確認シグナルなし',
@@ -1759,6 +1769,15 @@ function setAxis(k){sortSel.value=k;dirAsc=naturalAsc(k);syncDir();}
 
 // 更新履歴を新しいものから流す。同じ並びを2つ置いて -50% まで動かすと継ぎ目なく回る。
 // 速度は一定（px/秒）にして、件数が増えても流れる速さが変わらないようにする。
+/* Says which data this build came from. Silent when it is upstream, as it
+   always was; explicit when upstream has stopped and this site measured. */
+function renderSource(){
+  const el=document.querySelector('#srcnote');
+  if(!el)return;
+  if(!SOURCE||SOURCE.source!=='self'){el.hidden=true;return;}
+  el.innerHTML=T().srcSelf(SOURCE.upstream_last||'?',(SOURCE.finished||'').slice(0,16));
+  el.hidden=false;
+}
 function renderFeed(){
   const t=T(),run=document.querySelector('#feedrun');
   const one=t.changelog.slice().reverse().slice(0,8).map(e=>
@@ -1884,7 +1903,7 @@ function applyLang(){
     '</ul>';
 
   document.querySelector('#backrank').textContent=t.backToRanking;
-  syncViews();syncPeriods();renderThemes();drawCurve();drawHex();syncChips();render();renderGuide();renderFeed();
+  syncViews();syncPeriods();renderThemes();drawCurve();drawHex();syncChips();render();renderGuide();renderFeed();renderSource();
   Array.prototype.forEach.call(langsw.children,b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));
 }
 

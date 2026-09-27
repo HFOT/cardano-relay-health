@@ -20,9 +20,60 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Upstream (BEACNpool's ABCDE) stopped publishing on 2026-09-14. While its
+  # newest observation is less than 48 hours old this job does nothing and the
+  # page is built from upstream as before. Once it is older, this measures the
+  # same things itself - same tool, same two-pass test - on Linux, the only
+  # place cardano-cli's tip request works, and the build uses that instead.
+  selfprobe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    outputs:
+      stale: ${{ steps.fresh.outputs.stale }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Is upstream still publishing?
+        id: fresh
+        run: |
+          python3 - <<'PY'
+          import csv, io, os, urllib.request, datetime as dt
+          url = 'https://raw.githubusercontent.com/BEACNpool/ABCDE/main/data/small/relay_pool_health.csv'
+          try:
+              rows = list(csv.DictReader(io.StringIO(urllib.request.urlopen(url, timeout=120).read().decode('utf-8-sig'))))
+              last = max(r['last_checked'] for r in rows if r.get('last_checked'))
+              t = dt.datetime.strptime(last[:19], '%Y-%m-%d %H:%M:%S').replace(tzinfo=dt.UTC)
+              age = (dt.datetime.now(dt.UTC) - t).total_seconds() / 3600
+          except Exception as e:
+              last, age = '', 1e9
+              print('could not read upstream:', e)
+          stale = age >= 48
+          print(f'upstream newest last_checked {last or "?"} ({age:.0f}h old) -> stale={stale}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'stale={"true" if stale else "false"}\nlast={last[:10]}\n')
+          PY
+      - name: Fetch cardano-cli 11.0.0.0 (the version upstream documents)
+        if: steps.fresh.outputs.stale == 'true'
+        run: |
+          curl -sL -o cli.tgz https://github.com/IntersectMBO/cardano-cli/releases/download/cardano-cli-11.0.0.0/cardano-cli-11.0.0.0-x86_64-linux.tar.gz
+          mkdir -p cli && tar -xzf cli.tgz -C cli
+          CLI=$(find cli -type f -name 'cardano-cli*' | head -1)
+          chmod +x "$CLI"; echo "CLI=$PWD/$CLI" >> $GITHUB_ENV
+          pip install --quiet dnspython
+      - name: Collect
+        if: steps.fresh.outputs.stale == 'true'
+        run: python3 tools/selfprobe.py --cli "$CLI" --out selfdata --upstream-last "${{ steps.fresh.outputs.last }}"
+      - uses: actions/upload-artifact@v4
+        if: steps.fresh.outputs.stale == 'true'
+        with:
+          name: selfdata
+          path: selfdata/
+
   build:
     # Windows PowerShell 5.1 is the environment the generator is written and tested against.
     runs-on: windows-latest
+    needs: selfprobe
+    # A failed self-collection must not stop the page: it falls back to upstream.
+    if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +90,25 @@ jobs:
             if ($size -lt 1024) { throw "$f looks truncated ($size bytes)" }
             Write-Output "$f  $size bytes"
           }
+
+      - name: Take the self-collected files
+        if: needs.selfprobe.outputs.stale == 'true' && needs.selfprobe.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: selfdata
+          path: selfdata
+
+      # KES clusters keep coming from upstream's last file: they are built from
+      # operational-certificate counters across every block, change slowly, and
+      # are not something this run measures.
+      - name: Swap them in while upstream is stale
+        if: needs.selfprobe.outputs.stale == 'true' && needs.selfprobe.result == 'success'
+        shell: powershell
+        run: |
+          foreach ($f in 'relay_pool_health.csv','relay_shared_hosts.csv','source.json') {
+            Copy-Item "selfdata/$f" "data/$f" -Force
+          }
+          Get-Content data/source.json
 
       - name: Check upstream schema
         shell: powershell

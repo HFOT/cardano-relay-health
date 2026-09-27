@@ -499,7 +499,12 @@ $checked = ($ranked | Where-Object checked | Select-Object -First 1).checked
 
 # 表示部は work\template.html が単一ソース。__DATA__ と __CHECKED__ だけ差し込む。
 $html = [IO.File]::ReadAllText($tpl, [Text.UTF8Encoding]::new($false))
-$html = $html.Replace('__DATA__',$json).Replace('__GROUPS__',$groupsJson).Replace('__UNMEASURED__',$unmeasuredJson).Replace('__DOMAINS__',$domainsJson).Replace('__SATPOINT__',$(if($satPoint -gt 0){[long]$satPoint}else{0})).Replace('__CHECKED__',$checked)
+# どちらのデータで作った回かをページに渡す。上流が止まっている間は自前測定を使うので、
+# そのことを黙って出さない。source.json が無ければ上流（従来どおり）。
+$sourceJson = '{"source":"upstream"}'
+$srcPath = Join-Path $SrcDir 'source.json'
+if (Test-Path $srcPath) { $sourceJson = (Get-Content -Raw -Encoding UTF8 $srcPath).Trim(); Write-Output "  source.json: $sourceJson" }
+$html = $html.Replace('__DATA__',$json).Replace('__GROUPS__',$groupsJson).Replace('__UNMEASURED__',$unmeasuredJson).Replace('__DOMAINS__',$domainsJson).Replace('__SATPOINT__',$(if($satPoint -gt 0){[long]$satPoint}else{0})).Replace('__CHECKED__',$checked).Replace('__SOURCE__',$sourceJson)
 # -OutFile may be a bare filename, in which case Split-Path yields ''.
 $out = [IO.Path]::GetFullPath((Join-Path (Get-Location).Path $out))
 $outDir = Split-Path $out -Parent
