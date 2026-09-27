@@ -1,35 +1,48 @@
 name: Self-probe trial (manual)
 
-# Runs tools/selfprobe.py on a Linux runner and uploads what it produced, so the
-# output can be compared with upstream before the daily rebuild is allowed to
-# use it. Manual only; writes nothing to the repository.
+# Two manual trials on a Linux runner, neither of which writes to the repository:
+#   mode=probe - run tools/selfprobe.py and upload what it produced
+#   mode=kes   - pull op-cert rotations for an epoch range (Koios allows about
+#                5,000 unauthenticated requests per IP per day, so a full history
+#                is fetched in chunks, each on a fresh runner)
 on:
   workflow_dispatch:
     inputs:
-      max_pools:
-        description: 'Probe only this many minting pools (0 = all)'
-        default: '60'
+      mode:      { description: 'probe or kes', default: 'probe' }
+      max_pools: { description: 'probe: only this many minting pools (0 = all)', default: '60' }
+      first:     { description: 'kes: first epoch', default: '433' }
+      last:      { description: 'kes: last epoch', default: '545' }
 
 jobs:
-  selfprobe:
+  trial:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
+    env:
+      MODE: ${{ inputs.mode }}
+      MAX_POOLS: ${{ inputs.max_pools }}
+      FIRST: ${{ inputs.first }}
+      LAST: ${{ inputs.last }}
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch cardano-cli 11.0.0.0 (the version upstream documents)
+      - name: Validate inputs
+        run: |
+          case "$MODE" in probe|kes) ;; *) echo "mode must be probe or kes"; exit 1;; esac
+          case "$MAX_POOLS$FIRST$LAST" in ''|*[!0-9]*) echo "numbers only"; exit 1;; esac
+      - name: Fetch cardano-cli 11.0.0.0
+        if: env.MODE == 'probe'
         run: |
           curl -sL -o cli.tgz https://github.com/IntersectMBO/cardano-cli/releases/download/cardano-cli-11.0.0.0/cardano-cli-11.0.0.0-x86_64-linux.tar.gz
           mkdir -p cli && tar -xzf cli.tgz -C cli
           CLI=$(find cli -type f -name 'cardano-cli*' | head -1)
           chmod +x "$CLI"; echo "CLI=$PWD/$CLI" >> $GITHUB_ENV
           pip install --quiet dnspython
-      - name: Collect
-        env:
-          MAX_POOLS: ${{ inputs.max_pools }}
-        run: |
-          case "$MAX_POOLS" in ''|*[!0-9]*) echo "max_pools must be a number"; exit 1;; esac
-          python3 tools/selfprobe.py --cli "$CLI" --out selfdata --max-pools "$MAX_POOLS"
+      - name: Probe
+        if: env.MODE == 'probe'
+        run: python3 tools/selfprobe.py --cli "$CLI" --out out --max-pools "$MAX_POOLS"
+      - name: KES backfill
+        if: env.MODE == 'kes'
+        run: mkdir -p out && python3 tools/kes_backfill.py "out/rot_${FIRST}_${LAST}.csv" "$FIRST" "$LAST"
       - uses: actions/upload-artifact@v4
         with:
-          name: selfdata
-          path: selfdata/
+          name: out-${{ github.run_id }}
+          path: out/
