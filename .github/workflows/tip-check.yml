@@ -1,32 +1,31 @@
-name: Tip check (one-off)
+name: Self-probe trial (manual)
 
-# One question: does cardano-cli's tip request work from a Linux runner? The
-# Windows build fails it with SDUWriteTimeout; upstream runs Linux. Manual only,
-# writes nothing. Delete once answered.
+# Runs tools/selfprobe.py on a Linux runner and uploads what it produced, so the
+# output can be compared with upstream before the daily rebuild is allowed to
+# use it. Manual only; writes nothing to the repository.
 on:
   workflow_dispatch:
+    inputs:
+      max_pools:
+        description: 'Probe only this many minting pools (0 = all)'
+        default: '60'
 
 jobs:
-  tip:
+  selfprobe:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 120
     steps:
+      - uses: actions/checkout@v4
       - name: Fetch cardano-cli 11.0.0.0 (the version upstream documents)
         run: |
           curl -sL -o cli.tgz https://github.com/IntersectMBO/cardano-cli/releases/download/cardano-cli-11.0.0.0/cardano-cli-11.0.0.0-x86_64-linux.tar.gz
-          mkdir cli && tar -xzf cli.tgz -C cli
+          mkdir -p cli && tar -xzf cli.tgz -C cli
           CLI=$(find cli -type f -name 'cardano-cli*' | head -1)
-          chmod +x "$CLI"; echo "CLI=$CLI" >> $GITHUB_ENV
-          "$CLI" --version | head -1
-      - name: Ask for tip
-        run: |
-          set +e
-          for hp in backbone.cardano.iog.io:3001 relay-1-eu.junostakepool.com:4321 relay-1-cloud.junostakepool.com:3015 relay-0-eu.junostakepool.com:4321; do
-            h=${hp%:*}; p=${hp##*:}
-            echo "=== $hp ==="
-            start=$(date +%s)
-            timeout 40 "$CLI" ping -h "$h" -p "$p" -m 764824073 -c 1 -q -j -t > out.json 2> err.txt; rc=$?
-            echo "rc=$rc  elapsed=$(( $(date +%s) - start ))s"
-            head -c 900 out.json; echo
-            head -c 300 err.txt; echo
-          done
+          chmod +x "$CLI"; echo "CLI=$PWD/$CLI" >> $GITHUB_ENV
+          pip install --quiet dnspython
+      - name: Collect
+        run: python3 tools/selfprobe.py --cli "$CLI" --out selfdata --max-pools ${{ inputs.max_pools }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: selfdata
+          path: selfdata/
