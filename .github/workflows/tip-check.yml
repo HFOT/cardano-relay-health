@@ -20,6 +20,7 @@ jobs:
           "$CLI" --version | head -1
       - name: Ask for tip
         run: |
+          set +e
           for hp in backbone.cardano.iog.io:3001 relay-1-eu.junostakepool.com:4321 relay-1-cloud.junostakepool.com:3015 relay-0-eu.junostakepool.com:4321; do
             h=${hp%:*}; p=${hp##*:}
             echo "=== $hp ==="
