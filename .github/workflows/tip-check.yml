@@ -24,7 +24,11 @@ jobs:
           chmod +x "$CLI"; echo "CLI=$PWD/$CLI" >> $GITHUB_ENV
           pip install --quiet dnspython
       - name: Collect
-        run: python3 tools/selfprobe.py --cli "$CLI" --out selfdata --max-pools ${{ inputs.max_pools }}
+        env:
+          MAX_POOLS: ${{ inputs.max_pools }}
+        run: |
+          case "$MAX_POOLS" in ''|*[!0-9]*) echo "max_pools must be a number"; exit 1;; esac
+          python3 tools/selfprobe.py --cli "$CLI" --out selfdata --max-pools "$MAX_POOLS"
       - uses: actions/upload-artifact@v4
         with:
           name: selfdata

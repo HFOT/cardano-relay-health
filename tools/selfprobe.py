@@ -45,6 +45,7 @@ import csv
 import datetime as dt
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -284,6 +285,9 @@ def main():
     a = ap.parse_args()
 
     started = now_utc()
+    # upstream's own value; anything but a plain date is dropped
+    if a.upstream_last and not re.fullmatch(r'\d{4}-\d{2}-\d{2}', a.upstream_last):
+        a.upstream_last = ''
     tip = http_json(f'{KOIOS}/tip')[0]
     wall_slot = int(time.time()) - SHELLEY_OFFSET
     drift = wall_slot - int(tip['abs_slot'])

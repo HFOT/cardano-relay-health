@@ -1775,7 +1775,10 @@ function renderSource(){
   const el=document.querySelector('#srcnote');
   if(!el)return;
   if(!SOURCE||SOURCE.source!=='self'){el.hidden=true;return;}
-  el.innerHTML=T().srcSelf(SOURCE.upstream_last||'?',(SOURCE.finished||'').slice(0,16));
+  /* Both values start outside this repo (upstream's file, the runner's clock).
+     Only something shaped like a date is shown, and it is escaped regardless. */
+  const day=v=>/^\d{4}-\d{2}-\d{2}/.test(String(v||''))?String(v):'?';
+  el.innerHTML=T().srcSelf(esc(day(SOURCE.upstream_last).slice(0,10)),esc(day(SOURCE.finished).slice(0,16)));
   el.hidden=false;
 }
 function renderFeed(){

@@ -36,7 +36,7 @@ jobs:
         id: fresh
         run: |
           python3 - <<'PY'
-          import csv, io, os, urllib.request, datetime as dt
+          import csv, io, os, re, urllib.request, datetime as dt
           url = 'https://raw.githubusercontent.com/BEACNpool/ABCDE/main/data/small/relay_pool_health.csv'
           try:
               rows = list(csv.DictReader(io.StringIO(urllib.request.urlopen(url, timeout=120).read().decode('utf-8-sig'))))
@@ -49,7 +49,9 @@ jobs:
           stale = age >= 48
           print(f'upstream newest last_checked {last or "?"} ({age:.0f}h old) -> stale={stale}')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f'stale={"true" if stale else "false"}\nlast={last[:10]}\n')
+              # last_checked is someone else's data: only a plain date may pass on
+              day = last[:10] if re.fullmatch(r'\d{4}-\d{2}-\d{2}', last[:10]) else ''
+              f.write(f'stale={"true" if stale else "false"}\nlast={day}\n')
           PY
       - name: Fetch cardano-cli 11.0.0.0 (the version upstream documents)
         if: steps.fresh.outputs.stale == 'true'
@@ -61,7 +63,10 @@ jobs:
           pip install --quiet dnspython
       - name: Collect
         if: steps.fresh.outputs.stale == 'true'
-        run: python3 tools/selfprobe.py --cli "$CLI" --out selfdata --upstream-last "${{ steps.fresh.outputs.last }}"
+        # passed through the environment, never interpolated into the script
+        env:
+          UPSTREAM_LAST: ${{ steps.fresh.outputs.last }}
+        run: python3 tools/selfprobe.py --cli "$CLI" --out selfdata --upstream-last "$UPSTREAM_LAST"
       - uses: actions/upload-artifact@v4
         if: steps.fresh.outputs.stale == 'true'
         with:
