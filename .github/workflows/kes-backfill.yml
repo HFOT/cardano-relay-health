@@ -1,0 +1,29 @@
+name: KES backfill (manual, one-off)
+
+# Pulls op-cert counters for a range of epochs from Koios and uploads the
+# rotation events. Koios allows roughly 5,000 unauthenticated requests per IP
+# per day, and a full history is about 10,000, so it runs in chunks - each run
+# gets a fresh runner and a fresh allowance. Writes nothing to the repository.
+on:
+  workflow_dispatch:
+    inputs:
+      first: { description: 'first epoch', default: '433' }
+      last:  { description: 'last epoch',  default: '545' }
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Backfill
+        env:
+          FIRST: ${{ inputs.first }}
+          LAST: ${{ inputs.last }}
+        run: |
+          case "$FIRST$LAST" in ''|*[!0-9]*) echo "epochs must be numbers"; exit 1;; esac
+          python3 tools/kes_backfill.py "rot_${FIRST}_${LAST}.csv" "$FIRST" "$LAST"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rot_${{ inputs.first }}_${{ inputs.last }}
+          path: rot_*.csv
